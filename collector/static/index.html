@@ -27,7 +27,7 @@
           var(--bg);
       }
       main {
-        width: min(920px, calc(100% - 2rem));
+        width: min(1100px, calc(100% - 2rem));
         margin: 0 auto;
         padding: 2rem 0 3rem;
       }
@@ -74,10 +74,6 @@
         background: transparent;
         border: 1px solid var(--line);
       }
-      button:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
       .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.75rem; }
       .status {
         display: flex;
@@ -100,11 +96,17 @@
       .muted { color: var(--muted); }
       .error { color: #ff8a7a; margin: 0.5rem 0 0; }
       .table-wrap { overflow-x: auto; }
-      table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-      th, td { text-align: left; padding: 0.55rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
-      th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th, td { text-align: left; padding: 0.5rem 0.3rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+      th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
       tr.uploaded td { opacity: 0.55; }
       input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--accent); }
+      select.label-select {
+        margin: 0;
+        min-width: 7.5rem;
+        padding: 0.4rem 0.5rem;
+      }
+      .counts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
       @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
     </style>
   </head>
@@ -112,8 +114,9 @@
     <main>
       <h1>DSR Lap Collector</h1>
       <p class="sub">
-        Drive freely — every completed lap lands in the session list. Tick the ones
-        you want on the board, then upload.
+        Drive Albert Park test laps, label each one (clean / paused / rewound), then
+        <strong>Save captures</strong> for verification research. Upload only the times
+        you want on the public board.
       </p>
 
       <section class="panel">
@@ -129,12 +132,13 @@
         </div>
         <div class="actions">
           <button id="save-settings" type="button">Save settings</button>
-          <button id="export" class="secondary" type="button">Export to site JSON</button>
+          <button id="export" class="secondary" type="button">Export board JSON</button>
         </div>
         <p id="settings-msg" class="muted"></p>
-        <p class="muted" style="margin:0.35rem 0 0;font-size:0.88rem;">
-          Upload keeps your <strong>best</strong> time per track + Class/PI.
-          <strong>Suspect</strong> means the UDP stream paused mid-lap (often rewind/pause).
+        <div id="capture-counts" class="counts"></div>
+        <p class="muted" style="margin:0.6rem 0 0;font-size:0.88rem;">
+          Targets for Albert Park v1: <strong>12 clean</strong>, <strong>10 paused</strong>,
+          <strong>10 rewound</strong>. One behaviour per lap — don’t mix pause + rewind.
         </p>
       </section>
 
@@ -158,8 +162,10 @@
                 <th>Time</th>
                 <th>Class/PI</th>
                 <th>Car</th>
-                <th>Integrity</th>
-                <th>Status</th>
+                <th>Auto</th>
+                <th>Gaps</th>
+                <th>Your label</th>
+                <th>Capture</th>
               </tr>
             </thead>
             <tbody id="session-body"></tbody>
@@ -167,7 +173,8 @@
         </div>
         <p id="session-error" class="error" hidden></p>
         <div class="actions">
-          <button id="upload-selected" type="button">Upload selected</button>
+          <button id="save-captures" type="button">Save captures</button>
+          <button id="upload-selected" class="secondary" type="button">Upload selected to board</button>
           <button id="remove-selected" class="secondary" type="button">Remove selected</button>
           <button id="clear-session" class="secondary" type="button">Clear list</button>
         </div>
@@ -197,6 +204,8 @@
     <script>
       const $ = (id) => document.getElementById(id);
       let hydrated = false;
+      let labelTimers = {};
+      let lastSessionKey = "";
 
       async function api(path, options) {
         const res = await fetch(path, {
@@ -233,6 +242,17 @@
         else if (selected) sel.value = selected;
       }
 
+      function renderCounts(counts) {
+        const box = $("capture-counts");
+        if (!counts) {
+          box.innerHTML = "";
+          return;
+        }
+        box.innerHTML = ["clean", "paused", "rewound", "unknown"]
+          .map((key) => `<span class="pill">${key}: ${counts[key] || 0}</span>`)
+          .join("");
+      }
+
       function renderSession(laps) {
         const empty = $("session-empty");
         const table = $("session-table");
@@ -249,16 +269,45 @@
         body.innerHTML = laps
           .map((lap) => {
             const integrityClass = lap.suspect_rewind ? "suspect" : "clean";
+            const jumps = (lap.gap_jumps_m || []).map((n) => `${n}m`).join(", ") || "—";
             return `<tr class="${lap.uploaded ? "uploaded" : ""}">
               <td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>
               <td>${lap.lap_time}</td>
               <td>${lap.class_pi}</td>
               <td>${lap.car || "—"}</td>
               <td><span class="pill ${integrityClass}">${lap.integrity}</span></td>
-              <td>${lap.uploaded ? "Uploaded" : "Ready"}</td>
+              <td title="${jumps}">${lap.stream_gaps || 0}</td>
+              <td>
+                <select class="label-select" data-id="${lap.id}">
+                  <option value="unknown" ${lap.label === "unknown" ? "selected" : ""}>unknown</option>
+                  <option value="clean" ${lap.label === "clean" ? "selected" : ""}>clean</option>
+                  <option value="paused" ${lap.label === "paused" ? "selected" : ""}>paused</option>
+                  <option value="rewound" ${lap.label === "rewound" ? "selected" : ""}>rewound</option>
+                </select>
+              </td>
+              <td>${lap.capture_saved ? "Saved" : "—"}</td>
             </tr>`;
           })
           .join("");
+
+        body.querySelectorAll(".label-select").forEach((sel) => {
+          sel.onchange = () => queueLabel(sel.dataset.id, sel.value);
+        });
+      }
+
+      function queueLabel(id, label) {
+        clearTimeout(labelTimers[id]);
+        labelTimers[id] = setTimeout(async () => {
+          try {
+            await api("/api/session/labels", {
+              method: "POST",
+              body: JSON.stringify({ labels: { [id]: label } }),
+            });
+          } catch (err) {
+            $("session-error").hidden = false;
+            $("session-error").textContent = err.message;
+          }
+        }, 150);
       }
 
       function renderSaved(entries) {
@@ -290,8 +339,13 @@
         } else {
           fillTracks(state.tracks, $("track").value || state.track);
         }
-        renderSession(state.session_laps || []);
-        renderSaved(state.saved || state.laps || []);
+        const sessionKey = JSON.stringify(state.session_laps || []);
+        if (sessionKey !== lastSessionKey) {
+          renderSession(state.session_laps || []);
+          lastSessionKey = sessionKey;
+        }
+        renderSaved(state.saved || []);
+        renderCounts(state.capture_counts);
 
         const live = state.live;
         const udp = $("udp-state");
@@ -329,6 +383,24 @@
           refresh();
         } catch (err) {
           $("settings-msg").textContent = err.message;
+        }
+      };
+
+      $("save-captures").onclick = async () => {
+        $("session-error").hidden = true;
+        try {
+          const result = await api("/api/session/save-captures", {
+            method: "POST",
+            body: JSON.stringify({
+              ...currentSettings(),
+              ids: selectedIds(),
+            }),
+          });
+          $("settings-msg").textContent = `Saved ${result.saved} capture file(s) under collector/captures/`;
+          await refresh();
+        } catch (err) {
+          $("session-error").hidden = false;
+          $("session-error").textContent = err.message;
         }
       };
 

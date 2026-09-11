@@ -24,6 +24,7 @@ from urllib.parse import urlparse
 
 from dataclasses import dataclass
 
+from .capture import VALID_LABELS, capture_counts, capture_payload, save_capture
 from .export_board import DEFAULT_OUT, car_label, export_leaderboard, load_car_names
 from .lap_detect import CompletedLap, LapDetector
 from .packet import PACKET_SIZE, format_lap_time, parse_packet
@@ -38,6 +39,9 @@ class SessionLap:
     id: int
     completed: CompletedLap
     uploaded: bool = False
+    label: str = "unknown"
+    capture_saved: bool = False
+    capture_path: str | None = None
 
 
 class CollectorState:
@@ -71,7 +75,13 @@ class CollectorState:
             "stream_gaps": lap.stream_gaps,
             "suspect_rewind": lap.suspect_rewind,
             "integrity": "Suspect" if lap.suspect_rewind else "Clean",
+            "gap_jumps_m": [g.jump_m for g in lap.gaps],
+            "gap_durations_s": [g.duration_s for g in lap.gaps],
+            "path_points": len(lap.path),
+            "label": item.label,
             "uploaded": item.uploaded,
+            "capture_saved": item.capture_saved,
+            "capture_path": item.capture_path,
         }
 
     def snapshot(self) -> dict:
@@ -105,6 +115,8 @@ class CollectorState:
                 "saved": saved,
                 "live": live,
                 "packets_per_sec": self.packets_per_sec,
+                "capture_counts": capture_counts(self.track),
+                "labels": list(VALID_LABELS),
             }
 
     def handle_packet(self, data: bytes) -> None:
@@ -198,6 +210,65 @@ class CollectorState:
             self.session_laps.clear()
             return {"ok": True, "removed": count}
 
+    def set_labels(self, labels: dict[str, str]) -> dict:
+        with self._lock:
+            by_id = {item.id: item for item in self.session_laps}
+            updated = 0
+            for raw_id, label in labels.items():
+                item = by_id.get(int(raw_id))
+                if not item:
+                    continue
+                item.label = label if label in VALID_LABELS else "unknown"
+                updated += 1
+            return {"ok": True, "updated": updated}
+
+    def save_captures(
+        self,
+        ids: list[int],
+        player_name: str | None = None,
+        track: str | None = None,
+    ) -> dict:
+        with self._lock:
+            if player_name is not None:
+                self.player_name = player_name.strip()
+            if track is not None and track in self.tracks:
+                self.track = track
+            if not self.track:
+                return {"ok": False, "error": "Select a track first"}
+            if not ids:
+                return {"ok": False, "error": "Select at least one lap"}
+
+            wanted = set(ids)
+            chosen = [item for item in self.session_laps if item.id in wanted]
+            if not chosen:
+                return {"ok": False, "error": "No matching laps in the session list"}
+
+            saved_paths = []
+            for item in chosen:
+                if item.label == "unknown":
+                    return {
+                        "ok": False,
+                        "error": f"Set a label on lap {item.id} before saving capture "
+                        "(clean / paused / rewound)",
+                    }
+                payload = capture_payload(
+                    lap=item.completed,
+                    track=self.track,
+                    player_name=self.player_name or "anonymous",
+                    label=item.label,
+                )
+                path = save_capture(payload)
+                item.capture_saved = True
+                item.capture_path = str(path)
+                saved_paths.append(str(path))
+
+            return {
+                "ok": True,
+                "saved": len(saved_paths),
+                "paths": saved_paths,
+                "capture_counts": capture_counts(self.track),
+            }
+
 
 def make_handler(state: CollectorState):
     class Handler(BaseHTTPRequestHandler):
@@ -267,6 +338,19 @@ def make_handler(state: CollectorState):
                 if path == "/api/session/clear":
                     result = state.clear_session()
                     self._json(200, result)
+                    return
+                if path == "/api/session/labels":
+                    result = state.set_labels(data.get("labels") or {})
+                    self._json(200, result)
+                    return
+                if path == "/api/session/save-captures":
+                    ids = data.get("ids") or []
+                    result = state.save_captures(
+                        [int(i) for i in ids],
+                        player_name=data.get("player_name"),
+                        track=data.get("track"),
+                    )
+                    self._json(200 if result.get("ok") else 400, result)
                     return
                 if path == "/api/export":
                     out = export_leaderboard(state.store, DEFAULT_OUT)
