@@ -63,6 +63,7 @@ class LapDetectTests(unittest.TestCase):
         self.assertAlmostEqual(completed.lap_time_s, 84.102, places=3)
         self.assertEqual(completed.class_name, "A")
         self.assertEqual(completed.car_pi, 699)
+        self.assertFalse(completed.suspect_rewind)
 
 
 class StoreTests(unittest.TestCase):

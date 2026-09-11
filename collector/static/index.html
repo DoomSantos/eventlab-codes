@@ -13,6 +13,7 @@
         --accent: #e85d4c;
         --line: rgba(255, 255, 255, 0.08);
         --ok: #3ecf8e;
+        --warn: #e8b84c;
         --font: "Segoe UI", system-ui, sans-serif;
       }
       * { box-sizing: border-box; }
@@ -26,11 +27,12 @@
           var(--bg);
       }
       main {
-        width: min(720px, calc(100% - 2rem));
+        width: min(920px, calc(100% - 2rem));
         margin: 0 auto;
         padding: 2rem 0 3rem;
       }
       h1 { margin: 0 0 0.35rem; font-size: 1.5rem; }
+      h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
       .sub { color: var(--muted); margin: 0 0 1.5rem; }
       .panel {
         background: var(--panel);
@@ -72,7 +74,11 @@
         background: transparent;
         border: 1px solid var(--line);
       }
-      .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.75rem; }
       .status {
         display: flex;
         justify-content: space-between;
@@ -89,21 +95,26 @@
         font-size: 0.85rem;
       }
       .pill.live { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
-      .pending {
-        border: 1px solid rgba(232, 93, 76, 0.45);
-        background: rgba(232, 93, 76, 0.1);
-      }
+      .pill.clean { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
+      .pill.suspect { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
       .muted { color: var(--muted); }
-      table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-      th, td { text-align: left; padding: 0.55rem 0.25rem; border-bottom: 1px solid var(--line); }
-      th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+      .error { color: #ff8a7a; margin: 0.5rem 0 0; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+      th, td { text-align: left; padding: 0.55rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+      th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+      tr.uploaded td { opacity: 0.55; }
+      input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--accent); }
       @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <main>
       <h1>DSR Lap Collector</h1>
-      <p class="sub">Point FH6 Data Out at this PC, pick a track, drive, then save completed laps.</p>
+      <p class="sub">
+        Drive freely — every completed lap lands in the session list. Tick the ones
+        you want on the board, then upload.
+      </p>
 
       <section class="panel">
         <div class="row">
@@ -122,7 +133,8 @@
         </div>
         <p id="settings-msg" class="muted"></p>
         <p class="muted" style="margin:0.35rem 0 0;font-size:0.88rem;">
-          Saves keep your <strong>best</strong> time per track + Class/PI only.
+          Upload keeps your <strong>best</strong> time per track + Class/PI.
+          <strong>Suspect</strong> means the UDP stream paused mid-lap (often rewind/pause).
         </p>
       </section>
 
@@ -135,39 +147,55 @@
         </div>
       </section>
 
-      <section id="pending-panel" class="panel pending" hidden>
-        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Lap ready</h2>
-        <p id="pending-text" style="margin:0 0 0.35rem;"></p>
-        <p id="pending-queue" class="muted" style="margin:0 0 0.85rem;"></p>
-        <p id="pending-error" style="margin:0 0 0.75rem;color:#ff8a7a;" hidden></p>
+      <section class="panel">
+        <h2>Session laps</h2>
+        <p id="session-empty" class="muted">No laps yet — go drive.</p>
+        <div class="table-wrap">
+          <table id="session-table" hidden>
+            <thead>
+              <tr>
+                <th><input id="select-all" type="checkbox" title="Select all" /></th>
+                <th>Time</th>
+                <th>Class/PI</th>
+                <th>Car</th>
+                <th>Integrity</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="session-body"></tbody>
+          </table>
+        </div>
+        <p id="session-error" class="error" hidden></p>
         <div class="actions">
-          <button id="accept-lap" type="button">Save lap</button>
-          <button id="discard-lap" class="secondary" type="button">Discard</button>
+          <button id="upload-selected" type="button">Upload selected</button>
+          <button id="remove-selected" class="secondary" type="button">Remove selected</button>
+          <button id="clear-session" class="secondary" type="button">Clear list</button>
         </div>
       </section>
 
       <section class="panel">
-        <h2 style="margin:0 0 0.75rem;font-size:1.05rem;">Saved (this PC)</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Track</th>
-              <th>Driver</th>
-              <th>Time</th>
-              <th>Class/PI</th>
-              <th>Car</th>
-            </tr>
-          </thead>
-          <tbody id="laps-body">
-            <tr><td colspan="5" class="muted">No laps yet</td></tr>
-          </tbody>
-        </table>
+        <h2>Uploaded (this PC)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Track</th>
+                <th>Driver</th>
+                <th>Time</th>
+                <th>Class/PI</th>
+                <th>Car</th>
+                <th>Integrity</th>
+              </tr>
+            </thead>
+            <tbody id="saved-body">
+              <tr><td colspan="6" class="muted">Nothing uploaded yet</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
     <script>
       const $ = (id) => document.getElementById(id);
-      let pending = null;
-      let pendingCount = 0;
       let hydrated = false;
 
       async function api(path, options) {
@@ -191,6 +219,12 @@
         };
       }
 
+      function selectedIds() {
+        return [...document.querySelectorAll(".lap-check:checked")].map((el) =>
+          Number(el.value)
+        );
+      }
+
       function fillTracks(tracks, selected) {
         const sel = $("track");
         const previous = sel.value || selected;
@@ -199,10 +233,38 @@
         else if (selected) sel.value = selected;
       }
 
-      function renderLaps(entries) {
-        const body = $("laps-body");
+      function renderSession(laps) {
+        const empty = $("session-empty");
+        const table = $("session-table");
+        const body = $("session-body");
+        if (!laps.length) {
+          empty.hidden = false;
+          table.hidden = true;
+          body.innerHTML = "";
+          $("select-all").checked = false;
+          return;
+        }
+        empty.hidden = true;
+        table.hidden = false;
+        body.innerHTML = laps
+          .map((lap) => {
+            const integrityClass = lap.suspect_rewind ? "suspect" : "clean";
+            return `<tr class="${lap.uploaded ? "uploaded" : ""}">
+              <td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>
+              <td>${lap.lap_time}</td>
+              <td>${lap.class_pi}</td>
+              <td>${lap.car || "—"}</td>
+              <td><span class="pill ${integrityClass}">${lap.integrity}</span></td>
+              <td>${lap.uploaded ? "Uploaded" : "Ready"}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function renderSaved(entries) {
+        const body = $("saved-body");
         if (!entries.length) {
-          body.innerHTML = `<tr><td colspan="5" class="muted">No laps yet</td></tr>`;
+          body.innerHTML = `<tr><td colspan="6" class="muted">Nothing uploaded yet</td></tr>`;
           return;
         }
         body.innerHTML = entries
@@ -213,22 +275,10 @@
               <td>${e.lap_time}</td>
               <td>${e.class_pi}</td>
               <td>${e.car || "—"}</td>
+              <td>${e.integrity || "Clean"}</td>
             </tr>`
           )
           .join("");
-      }
-
-      function showPending(lap, count) {
-        pending = lap;
-        pendingCount = count || 0;
-        $("pending-panel").hidden = !lap;
-        $("pending-error").hidden = true;
-        $("pending-error").textContent = "";
-        if (!lap) return;
-        $("pending-text").textContent =
-          `${lap.lap_time} · ${lap.class_pi} · ${lap.car || "Car #" + lap.car_ordinal}`;
-        $("pending-queue").textContent =
-          count > 1 ? `${count} laps waiting — saving/discarding one at a time` : "";
       }
 
       async function refresh() {
@@ -240,8 +290,8 @@
         } else {
           fillTracks(state.tracks, $("track").value || state.track);
         }
-        renderLaps(state.laps);
-        showPending(state.pending, state.pending_count || 0);
+        renderSession(state.session_laps || []);
+        renderSaved(state.saved || state.laps || []);
 
         const live = state.live;
         const udp = $("udp-state");
@@ -262,6 +312,13 @@
         }
       }
 
+      $("select-all").onchange = () => {
+        const on = $("select-all").checked;
+        document.querySelectorAll(".lap-check").forEach((el) => {
+          el.checked = on;
+        });
+      };
+
       $("save-settings").onclick = async () => {
         try {
           await api("/api/settings", {
@@ -275,29 +332,47 @@
         }
       };
 
-      $("accept-lap").onclick = async () => {
+      $("upload-selected").onclick = async () => {
+        $("session-error").hidden = true;
         try {
-          const result = await api("/api/pending/accept", {
+          const result = await api("/api/session/upload", {
             method: "POST",
-            body: JSON.stringify(currentSettings()),
+            body: JSON.stringify({
+              ...currentSettings(),
+              ids: selectedIds(),
+            }),
           });
-          $("settings-msg").textContent = result.improved
-            ? `Saved new best ${result.lap_time} (${result.class_pi})`
-            : `Kept existing best (this lap was not faster)`;
+          $("settings-msg").textContent =
+            `Uploaded ${result.uploaded} lap(s) · ${result.improved} new best(s)`;
           await refresh();
         } catch (err) {
-          $("pending-error").hidden = false;
-          $("pending-error").textContent = err.message;
+          $("session-error").hidden = false;
+          $("session-error").textContent = err.message;
         }
       };
 
-      $("discard-lap").onclick = async () => {
+      $("remove-selected").onclick = async () => {
+        $("session-error").hidden = true;
         try {
-          await api("/api/pending/discard", { method: "POST", body: "{}" });
+          await api("/api/session/remove", {
+            method: "POST",
+            body: JSON.stringify({ ids: selectedIds() }),
+          });
           await refresh();
         } catch (err) {
-          $("pending-error").hidden = false;
-          $("pending-error").textContent = err.message;
+          $("session-error").hidden = false;
+          $("session-error").textContent = err.message;
+        }
+      };
+
+      $("clear-session").onclick = async () => {
+        $("session-error").hidden = true;
+        try {
+          await api("/api/session/clear", { method: "POST", body: "{}" });
+          await refresh();
+        } catch (err) {
+          $("session-error").hidden = false;
+          $("session-error").textContent = err.message;
         }
       };
 

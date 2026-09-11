@@ -46,6 +46,9 @@ def export_leaderboard(store: LapStore, out_path: Path = DEFAULT_OUT) -> Path:
                 "class_pi": lap.class_pi_label,
                 "car_ordinal": lap.car_ordinal,
                 "car": car_label(lap.car_ordinal, car_names),
+                "suspect_rewind": bool(lap.suspect_rewind),
+                "stream_gaps": lap.stream_gaps,
+                "integrity": lap.integrity_label,
                 "created_at": lap.created_at,
             }
             for lap in laps

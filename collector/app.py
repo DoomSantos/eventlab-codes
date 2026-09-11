@@ -22,6 +22,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from dataclasses import dataclass
+
 from .export_board import DEFAULT_OUT, car_label, export_leaderboard, load_car_names
 from .lap_detect import CompletedLap, LapDetector
 from .packet import PACKET_SIZE, format_lap_time, parse_packet
@@ -29,6 +31,13 @@ from .store import LapStore
 from .tracks import load_track_names
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+@dataclass
+class SessionLap:
+    id: int
+    completed: CompletedLap
+    uploaded: bool = False
 
 
 class CollectorState:
@@ -39,15 +48,18 @@ class CollectorState:
         self.player_name = ""
         self.track = tracks[0] if tracks else ""
         self.detector = LapDetector()
-        self.pending: list[CompletedLap] = []
+        self.session_laps: list[SessionLap] = []
+        self._next_id = 1
         self.live = None
         self.packets_per_sec = 0
         self._packet_count = 0
         self._lock = threading.Lock()
         self._stop = threading.Event()
 
-    def _pending_payload(self, lap: CompletedLap) -> dict:
+    def _session_payload(self, item: SessionLap) -> dict:
+        lap = item.completed
         return {
+            "id": item.id,
             "lap_time_s": lap.lap_time_s,
             "lap_time": format_lap_time(lap.lap_time_s),
             "class_name": lap.class_name,
@@ -56,11 +68,14 @@ class CollectorState:
             "car_ordinal": lap.car_ordinal,
             "car": car_label(lap.car_ordinal, self.car_names),
             "lap_number": lap.lap_number,
+            "stream_gaps": lap.stream_gaps,
+            "suspect_rewind": lap.suspect_rewind,
+            "integrity": "Suspect" if lap.suspect_rewind else "Clean",
+            "uploaded": item.uploaded,
         }
 
     def snapshot(self) -> dict:
         with self._lock:
-            pending = self._pending_payload(self.pending[0]) if self.pending else None
             live = None
             if self.live:
                 live = {
@@ -71,13 +86,14 @@ class CollectorState:
                     "is_race_on": self.live.is_race_on,
                     "car": car_label(self.live.car_ordinal, self.car_names),
                 }
-            laps = [
+            saved = [
                 {
                     "track": lap.track,
                     "player_name": lap.player_name,
                     "lap_time": format_lap_time(lap.lap_time_s),
                     "class_pi": lap.class_pi_label,
                     "car": car_label(lap.car_ordinal, self.car_names),
+                    "integrity": lap.integrity_label,
                 }
                 for lap in self.store.all_laps()
             ]
@@ -85,10 +101,9 @@ class CollectorState:
                 "player_name": self.player_name,
                 "track": self.track,
                 "tracks": self.tracks,
-                "pending": pending,
-                "pending_count": len(self.pending),
+                "session_laps": [self._session_payload(item) for item in self.session_laps],
+                "saved": saved,
                 "live": live,
-                "laps": laps,
                 "packets_per_sec": self.packets_per_sec,
             }
 
@@ -101,7 +116,10 @@ class CollectorState:
             self.live = tel
             completed = self.detector.feed(tel)
             if completed:
-                self.pending.append(completed)
+                self.session_laps.append(
+                    SessionLap(id=self._next_id, completed=completed)
+                )
+                self._next_id += 1
 
     def tick_rates(self) -> None:
         with self._lock:
@@ -114,45 +132,71 @@ class CollectorState:
             if track in self.tracks:
                 self.track = track
 
-    def accept_pending(self, player_name: str | None = None, track: str | None = None) -> dict:
+    def upload_laps(
+        self,
+        ids: list[int],
+        player_name: str | None = None,
+        track: str | None = None,
+    ) -> dict:
         with self._lock:
             if player_name is not None:
                 self.player_name = player_name.strip()
             if track is not None and track in self.tracks:
                 self.track = track
-
-            if not self.pending:
-                return {"ok": False, "error": "No pending lap"}
             if not self.player_name:
                 return {
                     "ok": False,
-                    "error": "Enter a display name above, then click Save lap again",
+                    "error": "Enter a display name above, then upload again",
                 }
             if not self.track:
                 return {"ok": False, "error": "Select a track first"}
+            if not ids:
+                return {"ok": False, "error": "Select at least one lap"}
 
-            lap = self.pending.pop(0)
-            record, improved = self.store.upsert_best(
-                track=self.track,
-                player_name=self.player_name,
-                lap_time_s=lap.lap_time_s,
-                class_name=lap.class_name,
-                car_pi=lap.car_pi,
-                car_ordinal=lap.car_ordinal,
-            )
+            wanted = set(ids)
+            chosen = [item for item in self.session_laps if item.id in wanted]
+            if not chosen:
+                return {"ok": False, "error": "No matching laps in the session list"}
+
+            uploaded = 0
+            improved = 0
+            for item in chosen:
+                lap = item.completed
+                _record, did_improve = self.store.upsert_best(
+                    track=self.track,
+                    player_name=self.player_name,
+                    lap_time_s=lap.lap_time_s,
+                    class_name=lap.class_name,
+                    car_pi=lap.car_pi,
+                    car_ordinal=lap.car_ordinal,
+                    suspect_rewind=lap.suspect_rewind,
+                    stream_gaps=lap.stream_gaps,
+                )
+                item.uploaded = True
+                uploaded += 1
+                if did_improve:
+                    improved += 1
+
             return {
                 "ok": True,
+                "uploaded": uploaded,
                 "improved": improved,
-                "lap_time": format_lap_time(record.lap_time_s),
-                "class_pi": record.class_pi_label,
-                "pending_count": len(self.pending),
             }
 
-    def discard_pending(self) -> dict:
+    def remove_session_laps(self, ids: list[int]) -> dict:
         with self._lock:
-            if self.pending:
-                self.pending.pop(0)
-            return {"ok": True, "pending_count": len(self.pending)}
+            wanted = set(ids)
+            before = len(self.session_laps)
+            self.session_laps = [
+                item for item in self.session_laps if item.id not in wanted
+            ]
+            return {"ok": True, "removed": before - len(self.session_laps)}
+
+    def clear_session(self) -> dict:
+        with self._lock:
+            count = len(self.session_laps)
+            self.session_laps.clear()
+            return {"ok": True, "removed": count}
 
 
 def make_handler(state: CollectorState):
@@ -206,27 +250,34 @@ def make_handler(state: CollectorState):
                     state.set_settings(data.get("player_name", ""), data.get("track", ""))
                     self._json(200, {"ok": True})
                     return
-                if path == "/api/pending/accept":
-                    result = state.accept_pending(
+                if path == "/api/session/upload":
+                    ids = data.get("ids") or []
+                    result = state.upload_laps(
+                        [int(i) for i in ids],
                         player_name=data.get("player_name"),
                         track=data.get("track"),
                     )
                     self._json(200 if result.get("ok") else 400, result)
                     return
-                if path == "/api/pending/discard":
-                    result = state.discard_pending()
+                if path == "/api/session/remove":
+                    ids = data.get("ids") or []
+                    result = state.remove_session_laps([int(i) for i in ids])
+                    self._json(200, result)
+                    return
+                if path == "/api/session/clear":
+                    result = state.clear_session()
                     self._json(200, result)
                     return
                 if path == "/api/export":
                     out = export_leaderboard(state.store, DEFAULT_OUT)
                     self._json(
                         200,
-            {
-                "ok": True,
-                "path": str(out),
-                "count": len(state.store.all_laps()),
-                "hint": "Open board-lab.html on the site to verify",
-            },
+                        {
+                            "ok": True,
+                            "path": str(out),
+                            "count": len(state.store.all_laps()),
+                            "hint": "Open board-lab.html on the site to verify",
+                        },
                     )
                     return
                 self._json(404, {"error": "Not found"})

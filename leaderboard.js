@@ -72,19 +72,21 @@ function render() {
     : "No times for this filter yet";
 
   if (!rows.length) {
-    boardBody.innerHTML = `<tr><td colspan="5">No lap times yet for this selection.</td></tr>`;
+    boardBody.innerHTML = `<tr><td colspan="6">No lap times yet for this selection.</td></tr>`;
     return;
   }
 
   boardBody.innerHTML = rows
     .map((entry, index) => {
       const label = entry.class_pi || `${entry.class} ${entry.pi}`;
+      const integrity = entry.integrity || (entry.suspect_rewind ? "Suspect" : "Clean");
       return `<tr>
         <td>${index + 1}</td>
         <td>${escapeHtml(entry.player)}</td>
         <td class="time">${escapeHtml(entry.lap_time)}</td>
         <td>${escapeHtml(label)}</td>
         <td>${escapeHtml(carDisplay(entry))}</td>
+        <td>${escapeHtml(integrity)}</td>
       </tr>`;
     })
     .join("");
