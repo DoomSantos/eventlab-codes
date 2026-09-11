@@ -57,6 +57,31 @@
       ]
     },
     {
+      "name": "Autodromo Nazionale Monza Junior Course",
+      "variants": [
+        {
+          "label": "With Drivatars",
+          "icon": "robot",
+          "events": [
+            { "laps": 5, "code": "100006581" },
+            { "laps": 15, "code": "120484148" },
+            { "laps": 25, "code": "914543468" },
+            { "laps": 50, "code": "471491906" }
+          ]
+        },
+        {
+          "label": "Without Drivatars",
+          "icon": "driver",
+          "events": [
+            { "laps": 5, "code": "156018599" },
+            { "laps": 15, "code": "132396540" },
+            { "laps": 25, "code": "686673070" },
+            { "laps": 50, "code": "148936045" }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Circuit de Monaco",
       "variants": [
         {
