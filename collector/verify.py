@@ -62,16 +62,18 @@ def evaluate_capture(data: dict, fingerprint: dict | None = None) -> dict:
     gaps = data.get("gaps") or []
     integrity = classify_integrity(gaps)
     jumps = meaningful_jumps(gaps)
+    human = data.get("label")
+    expected = "clean" if human == "paused" else human
     return {
         "track_claimed": data.get("track_claimed"),
-        "label_human": data.get("label"),
+        "label_human": human,
         "track_match": track_match,
         "track_distance_m": round(dist, 3),
         "track_coverage": round(cov, 3),
         "integrity_auto": integrity,
         "gap_count": len(gaps),
         "max_jump_m": round(max(jumps), 3) if jumps else 0.0,
-        "integrity_ok": integrity == data.get("label"),
+        "integrity_ok": integrity == expected,
     }
 
 

@@ -175,6 +175,7 @@ class CollectorState:
             improved = 0
             for item in chosen:
                 lap = item.completed
+                integrity = classify_integrity(lap.gaps)
                 _record, did_improve = self.store.upsert_best(
                     track=self.track,
                     player_name=self.player_name,
@@ -182,7 +183,7 @@ class CollectorState:
                     class_name=lap.class_name,
                     car_pi=lap.car_pi,
                     car_ordinal=lap.car_ordinal,
-                    suspect_rewind=lap.suspect_rewind,
+                    suspect_rewind=(integrity == "rewound"),
                     stream_gaps=lap.stream_gaps,
                 )
                 item.uploaded = True

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from collector.lap_detect import LapDetector
-from collector.packet import PACKET_SIZE, format_lap_time, parse_packet
+from collector.packet import PACKET_SIZE, class_from_pi, format_lap_time, parse_packet
 from collector.store import LapStore
 
 
@@ -49,6 +49,12 @@ class PacketTests(unittest.TestCase):
     def test_format_lap_time(self) -> None:
         self.assertEqual(format_lap_time(84.102), "1:24.102")
         self.assertEqual(format_lap_time(9.5), "9.500")
+
+    def test_class_from_pi_fh6(self) -> None:
+        self.assertEqual(class_from_pi(800), "S1")
+        self.assertEqual(class_from_pi(900), "S2")
+        self.assertEqual(class_from_pi(998), "R")
+        self.assertEqual(class_from_pi(999), "X")
 
 
 class LapDetectTests(unittest.TestCase):

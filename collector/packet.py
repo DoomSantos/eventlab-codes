@@ -26,7 +26,27 @@ _OFF_LAP_NUMBER = 312
 _OFF_RACE_POS = 314
 _OFF_GEAR = 319
 
-CLASS_NAMES = ("D", "C", "B", "A", "S1", "S2", "X", "X")
+# FH6 classes: D C B A S1 S2 R X (R is new vs FH5; X is PI 999 only).
+CLASS_NAMES = ("D", "C", "B", "A", "S1", "S2", "R", "X")
+
+
+def class_from_pi(pi: int) -> str:
+    """Derive class letter from PI (authoritative for FH6 display)."""
+    if pi >= 999:
+        return "X"
+    if pi >= 901:
+        return "R"
+    if pi >= 801:
+        return "S2"
+    if pi >= 701:
+        return "S1"
+    if pi >= 601:
+        return "A"
+    if pi >= 501:
+        return "B"
+    if pi >= 401:
+        return "C"
+    return "D"
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,9 +70,8 @@ class Telemetry:
 
     @property
     def class_name(self) -> str:
-        if 0 <= self.car_class < len(CLASS_NAMES):
-            return CLASS_NAMES[self.car_class]
-        return "?"
+        # Prefer PI ranges — FH6 R (901–998) vs X (999) is unambiguous this way.
+        return class_from_pi(self.car_pi)
 
     @property
     def class_pi_label(self) -> str:

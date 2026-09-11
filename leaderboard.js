@@ -2,6 +2,7 @@ const DATA_URL = "data/leaderboard.json";
 
 const trackFilter = document.getElementById("track-filter");
 const classFilter = document.getElementById("class-filter");
+const integrityFilter = document.getElementById("integrity-filter");
 const boardBody = document.getElementById("board-body");
 const resultCount = document.getElementById("result-count");
 const updatedAt = document.getElementById("updated-at");
@@ -25,6 +26,12 @@ function uniqueSorted(values) {
 
 function carDisplay(entry) {
   return entry.car || (entry.car_ordinal != null ? `Car #${entry.car_ordinal}` : "—");
+}
+
+function integrityOf(entry) {
+  const raw = (entry.integrity || "").toLowerCase();
+  if (raw === "rewound" || entry.suspect_rewind) return "Rewound";
+  return "Clean";
 }
 
 function fillFilters() {
@@ -59,10 +66,16 @@ function refreshClassFilter() {
 function render() {
   const track = trackFilter.value;
   const classPi = classFilter.value;
+  const integrity = (integrityFilter?.value || "all").toLowerCase();
 
   let rows = entries.filter((e) => e.track === track);
   if (classPi !== "all") {
     rows = rows.filter((e) => (e.class_pi || `${e.class} ${e.pi}`) === classPi);
+  }
+  if (integrity === "clean") {
+    rows = rows.filter((e) => integrityOf(e) === "Clean");
+  } else if (integrity === "rewound") {
+    rows = rows.filter((e) => integrityOf(e) === "Rewound");
   }
 
   rows = [...rows].sort((a, b) => a.lap_time_s - b.lap_time_s);
@@ -79,14 +92,15 @@ function render() {
   boardBody.innerHTML = rows
     .map((entry, index) => {
       const label = entry.class_pi || `${entry.class} ${entry.pi}`;
-      const integrity = entry.integrity || (entry.suspect_rewind ? "Suspect" : "Clean");
+      const integrityLabel = integrityOf(entry);
+      const integrityClass = integrityLabel.toLowerCase();
       return `<tr>
         <td>${index + 1}</td>
         <td>${escapeHtml(entry.player)}</td>
         <td class="time">${escapeHtml(entry.lap_time)}</td>
         <td>${escapeHtml(label)}</td>
         <td>${escapeHtml(carDisplay(entry))}</td>
-        <td>${escapeHtml(integrity)}</td>
+        <td><span class="integrity-pill ${integrityClass}">${escapeHtml(integrityLabel)}</span></td>
       </tr>`;
     })
     .join("");
@@ -118,5 +132,6 @@ trackFilter.addEventListener("change", () => {
   render();
 });
 classFilter.addEventListener("change", render);
+integrityFilter?.addEventListener("change", render);
 
 init();

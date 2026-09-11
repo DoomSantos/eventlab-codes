@@ -484,6 +484,10 @@ h1 {
   gap: 0.85rem;
 }
 
+.control-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .board-controls label {
   display: block;
   margin-bottom: 0.35rem;
@@ -547,8 +551,28 @@ h1 {
   letter-spacing: 0.03em;
 }
 
+.integrity-pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.integrity-pill.clean {
+  color: #3ecf8e;
+  border-color: rgba(62, 207, 142, 0.45);
+}
+
+.integrity-pill.rewound {
+  color: #e8b84c;
+  border-color: rgba(232, 184, 76, 0.5);
+}
+
 @media (max-width: 560px) {
-  .control-grid {
+  .control-grid,
+  .control-grid-3 {
     grid-template-columns: 1fr;
   }
 }

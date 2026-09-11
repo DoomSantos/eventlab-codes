@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .packet import class_from_pi
+
 DEFAULT_DB = Path(__file__).resolve().parent / "laps.db"
 
 
@@ -29,7 +31,7 @@ class LapRecord:
 
     @property
     def integrity_label(self) -> str:
-        return "Suspect" if self.suspect_rewind else "Clean"
+        return "Rewound" if self.suspect_rewind else "Clean"
 
 
 class LapStore:
@@ -103,6 +105,7 @@ class LapStore:
 
         now = datetime.now(timezone.utc).isoformat()
         suspect_i = 1 if suspect_rewind else 0
+        class_name = class_from_pi(car_pi)
 
         if existing and float(existing["lap_time_s"]) <= lap_time_s:
             return self._row_to_record(existing), False

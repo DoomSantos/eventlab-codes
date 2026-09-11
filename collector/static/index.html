@@ -92,8 +92,9 @@
       }
       .pill.live { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
       .pill.clean { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
-      .pill.paused { color: #7ab6ff; border-color: rgba(122, 182, 255, 0.45); }
-      .pill.rewound, .pill.suspect { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
+      .pill.rewound { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
+      .pill.paused { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
+      .pill.suspect { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
       .muted { color: var(--muted); }
       .error { color: #ff8a7a; margin: 0.5rem 0 0; }
       .table-wrap { overflow-x: auto; }
@@ -137,9 +138,10 @@
         </div>
         <p id="settings-msg" class="muted"></p>
         <div id="capture-counts" class="counts"></div>
-        <p class="muted" style="margin:0.6rem 0 0;font-size:0.88rem;">
-          Targets for Albert Park v1: <strong>12 clean</strong>, <strong>10 paused</strong>,
-          <strong>10 rewound</strong>. One behaviour per lap — don’t mix pause + rewind.
+        <p class="muted" style="margin:0.35rem 0 0;font-size:0.88rem;">
+          Upload keeps your <strong>best</strong> time per track + Class/PI.
+          <strong>Rewound</strong> laps can still be uploaded — they’re marked on the board.
+          Pausing counts as <strong>Clean</strong>.
         </p>
       </section>
 
