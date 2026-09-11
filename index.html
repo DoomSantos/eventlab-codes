@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="FH6 EventLab track share codes from doomsantosracing. Tap a track, pick race type and laps, copy the code."
+    />
+    <title>FH6 EventLab Track Codes · doomsantosracing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <main class="page">
+      <header class="hero">
+        <div class="flag" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <p class="brand">doomsantosracing</p>
+        <h1 id="page-title">FH6 EventLab Track Codes</h1>
+        <p id="page-tagline" class="tagline"></p>
+        <p class="instagram-line">
+          Follow me on Instagram at
+          <a id="instagram-link" href="#" target="_blank" rel="noopener noreferrer"
+            >doomsantosracing</a
+          >
+          for new track releases!
+        </p>
+      </header>
+
+      <section class="tracks" aria-label="Track codes">
+        <div id="track-list" class="track-list"></div>
+        <p id="load-error" class="load-error" hidden>
+          Couldn’t load track data. Check that <code>data/tracks.json</code> is
+          available.
+        </p>
+      </section>
+
+      <footer class="footer">
+        <p>Tap any code to copy it · Updated via <code>data/tracks.json</code></p>
+      </footer>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="app.js" defer></script>
+  </body>
+</html>
