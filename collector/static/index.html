@@ -134,7 +134,9 @@
 
       <section id="pending-panel" class="panel pending" hidden>
         <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Lap ready</h2>
-        <p id="pending-text" style="margin:0 0 0.85rem;"></p>
+        <p id="pending-text" style="margin:0 0 0.35rem;"></p>
+        <p id="pending-queue" class="muted" style="margin:0 0 0.85rem;"></p>
+        <p id="pending-error" style="margin:0 0 0.75rem;color:#ff8a7a;" hidden></p>
         <div class="actions">
           <button id="accept-lap" type="button">Save lap</button>
           <button id="discard-lap" class="secondary" type="button">Discard</button>
@@ -161,6 +163,8 @@
     <script>
       const $ = (id) => document.getElementById(id);
       let pending = null;
+      let pendingCount = 0;
+      let hydrated = false;
 
       async function api(path, options) {
         const res = await fetch(path, {
@@ -168,14 +172,27 @@
           ...options,
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || res.statusText);
+        if (!res.ok) {
+          const err = new Error(data.error || res.statusText);
+          err.payload = data;
+          throw err;
+        }
         return data;
+      }
+
+      function currentSettings() {
+        return {
+          player_name: $("player").value.trim(),
+          track: $("track").value,
+        };
       }
 
       function fillTracks(tracks, selected) {
         const sel = $("track");
+        const previous = sel.value || selected;
         sel.innerHTML = tracks.map((t) => `<option value="${t}">${t}</option>`).join("");
-        if (selected) sel.value = selected;
+        if (previous && tracks.includes(previous)) sel.value = previous;
+        else if (selected) sel.value = selected;
       }
 
       function renderLaps(entries) {
@@ -196,20 +213,30 @@
           .join("");
       }
 
-      function showPending(lap) {
+      function showPending(lap, count) {
         pending = lap;
+        pendingCount = count || 0;
         $("pending-panel").hidden = !lap;
+        $("pending-error").hidden = true;
+        $("pending-error").textContent = "";
         if (!lap) return;
         $("pending-text").textContent =
           `${lap.lap_time} · ${lap.class_pi} · car #${lap.car_ordinal}`;
+        $("pending-queue").textContent =
+          count > 1 ? `${count} laps waiting — saving/discarding one at a time` : "";
       }
 
       async function refresh() {
         const state = await api("/api/state");
-        $("player").value = state.player_name || "";
-        fillTracks(state.tracks, state.track);
+        if (!hydrated) {
+          if (state.player_name) $("player").value = state.player_name;
+          fillTracks(state.tracks, state.track);
+          hydrated = true;
+        } else {
+          fillTracks(state.tracks, $("track").value || state.track);
+        }
         renderLaps(state.laps);
-        showPending(state.pending);
+        showPending(state.pending, state.pending_count || 0);
 
         const live = state.live;
         const udp = $("udp-state");
@@ -231,30 +258,51 @@
       }
 
       $("save-settings").onclick = async () => {
-        await api("/api/settings", {
-          method: "POST",
-          body: JSON.stringify({
-            player_name: $("player").value.trim(),
-            track: $("track").value,
-          }),
-        });
-        $("settings-msg").textContent = "Settings saved.";
-        refresh();
+        try {
+          await api("/api/settings", {
+            method: "POST",
+            body: JSON.stringify(currentSettings()),
+          });
+          $("settings-msg").textContent = "Settings saved.";
+          refresh();
+        } catch (err) {
+          $("settings-msg").textContent = err.message;
+        }
       };
 
       $("accept-lap").onclick = async () => {
-        await api("/api/pending/accept", { method: "POST", body: "{}" });
-        refresh();
+        try {
+          const result = await api("/api/pending/accept", {
+            method: "POST",
+            body: JSON.stringify(currentSettings()),
+          });
+          $("settings-msg").textContent = result.improved
+            ? `Saved new best ${result.lap_time} (${result.class_pi})`
+            : `Kept existing best (this lap was not faster)`;
+          await refresh();
+        } catch (err) {
+          $("pending-error").hidden = false;
+          $("pending-error").textContent = err.message;
+        }
       };
 
       $("discard-lap").onclick = async () => {
-        await api("/api/pending/discard", { method: "POST", body: "{}" });
-        refresh();
+        try {
+          await api("/api/pending/discard", { method: "POST", body: "{}" });
+          await refresh();
+        } catch (err) {
+          $("pending-error").hidden = false;
+          $("pending-error").textContent = err.message;
+        }
       };
 
       $("export").onclick = async () => {
-        const result = await api("/api/export", { method: "POST", body: "{}" });
-        $("settings-msg").textContent = `Exported ${result.count} entries → ${result.path}`;
+        try {
+          const result = await api("/api/export", { method: "POST", body: "{}" });
+          $("settings-msg").textContent = `Exported ${result.count} entries → ${result.path}`;
+        } catch (err) {
+          $("settings-msg").textContent = err.message;
+        }
       };
 
       refresh();

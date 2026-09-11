@@ -38,26 +38,27 @@ class CollectorState:
         self.player_name = ""
         self.track = tracks[0] if tracks else ""
         self.detector = LapDetector()
-        self.pending: CompletedLap | None = None
+        self.pending: list[CompletedLap] = []
         self.live = None
         self.packets_per_sec = 0
         self._packet_count = 0
         self._lock = threading.Lock()
         self._stop = threading.Event()
 
+    def _pending_payload(self, lap: CompletedLap) -> dict:
+        return {
+            "lap_time_s": lap.lap_time_s,
+            "lap_time": format_lap_time(lap.lap_time_s),
+            "class_name": lap.class_name,
+            "car_pi": lap.car_pi,
+            "class_pi": f"{lap.class_name} {lap.car_pi}",
+            "car_ordinal": lap.car_ordinal,
+            "lap_number": lap.lap_number,
+        }
+
     def snapshot(self) -> dict:
         with self._lock:
-            pending = None
-            if self.pending:
-                pending = {
-                    "lap_time_s": self.pending.lap_time_s,
-                    "lap_time": format_lap_time(self.pending.lap_time_s),
-                    "class_name": self.pending.class_name,
-                    "car_pi": self.pending.car_pi,
-                    "class_pi": f"{self.pending.class_name} {self.pending.car_pi}",
-                    "car_ordinal": self.pending.car_ordinal,
-                    "lap_number": self.pending.lap_number,
-                }
+            pending = self._pending_payload(self.pending[0]) if self.pending else None
             live = None
             if self.live:
                 live = {
@@ -81,6 +82,7 @@ class CollectorState:
                 "track": self.track,
                 "tracks": self.tracks,
                 "pending": pending,
+                "pending_count": len(self.pending),
                 "live": live,
                 "laps": laps,
                 "packets_per_sec": self.packets_per_sec,
@@ -94,8 +96,8 @@ class CollectorState:
             self._packet_count += 1
             self.live = tel
             completed = self.detector.feed(tel)
-            if completed and self.pending is None:
-                self.pending = completed
+            if completed:
+                self.pending.append(completed)
 
     def tick_rates(self) -> None:
         with self._lock:
@@ -108,15 +110,24 @@ class CollectorState:
             if track in self.tracks:
                 self.track = track
 
-    def accept_pending(self) -> dict:
+    def accept_pending(self, player_name: str | None = None, track: str | None = None) -> dict:
         with self._lock:
+            if player_name is not None:
+                self.player_name = player_name.strip()
+            if track is not None and track in self.tracks:
+                self.track = track
+
             if not self.pending:
                 return {"ok": False, "error": "No pending lap"}
             if not self.player_name:
-                return {"ok": False, "error": "Set a display name first"}
+                return {
+                    "ok": False,
+                    "error": "Enter a display name above, then click Save lap again",
+                }
             if not self.track:
                 return {"ok": False, "error": "Select a track first"}
-            lap = self.pending
+
+            lap = self.pending.pop(0)
             record, improved = self.store.upsert_best(
                 track=self.track,
                 player_name=self.player_name,
@@ -125,17 +136,19 @@ class CollectorState:
                 car_pi=lap.car_pi,
                 car_ordinal=lap.car_ordinal,
             )
-            self.pending = None
             return {
                 "ok": True,
                 "improved": improved,
                 "lap_time": format_lap_time(record.lap_time_s),
                 "class_pi": record.class_pi_label,
+                "pending_count": len(self.pending),
             }
 
-    def discard_pending(self) -> None:
+    def discard_pending(self) -> dict:
         with self._lock:
-            self.pending = None
+            if self.pending:
+                self.pending.pop(0)
+            return {"ok": True, "pending_count": len(self.pending)}
 
 
 def make_handler(state: CollectorState):
@@ -190,12 +203,15 @@ def make_handler(state: CollectorState):
                     self._json(200, {"ok": True})
                     return
                 if path == "/api/pending/accept":
-                    result = state.accept_pending()
+                    result = state.accept_pending(
+                        player_name=data.get("player_name"),
+                        track=data.get("track"),
+                    )
                     self._json(200 if result.get("ok") else 400, result)
                     return
                 if path == "/api/pending/discard":
-                    state.discard_pending()
-                    self._json(200, {"ok": True})
+                    result = state.discard_pending()
+                    self._json(200, result)
                     return
                 if path == "/api/export":
                     out = export_leaderboard(state.store, DEFAULT_OUT)
