@@ -140,6 +140,39 @@ h1 {
   border-bottom-color: currentColor;
 }
 
+.how-to {
+  margin: 1.5rem auto 0;
+  max-width: 38rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.how-to-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.how-to-steps {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.how-to-steps span {
+  color: var(--accent);
+  margin: 0 0.15rem;
+  font-weight: 700;
+}
+
 .track-list {
   display: flex;
   flex-direction: column;
