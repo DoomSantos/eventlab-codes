@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Community lap times for doomsantosracing Forza Horizon 6 EventLab tracks."
+    />
+    <title>Leaderboard · doomsantosracing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <main class="page">
+      <nav class="site-nav" aria-label="Site">
+        <a href="./">Codes</a>
+        <a href="./leaderboard.html" aria-current="page">Leaderboard</a>
+      </nav>
+      <header class="hero">
+        <p class="brand">doomsantosracing</p>
+        <h1>EventLab Leaderboard</h1>
+        <p class="tagline">
+          Best lap times by track and Class/PI. Grab share codes on the
+          <a class="inline-link" href="./">codes page</a>.
+        </p>
+      </header>
+
+      <section class="board-controls panel-block" aria-label="Filters">
+        <div class="control-grid">
+          <div>
+            <label for="track-filter">Track</label>
+            <select id="track-filter"></select>
+          </div>
+          <div>
+            <label for="class-filter">Class / PI</label>
+            <select id="class-filter">
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-block" aria-label="Rankings">
+        <div class="board-meta">
+          <p id="result-count" class="muted">Loading…</p>
+          <p id="updated-at" class="muted"></p>
+        </div>
+        <div class="table-wrap">
+          <table class="board-table">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Driver</th>
+                <th scope="col">Time</th>
+                <th scope="col">Class/PI</th>
+              </tr>
+            </thead>
+            <tbody id="board-body">
+              <tr>
+                <td colspan="4">Loading leaderboard…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="board-error" class="load-error" hidden>
+          Couldn’t load leaderboard data.
+        </p>
+      </section>
+
+      <footer class="footer">
+        <p>
+          Times are submitted via the PC Data Out collector ·
+          <a class="inline-link" href="./">Back to codes</a>
+        </p>
+      </footer>
+    </main>
+
+    <script src="leaderboard.js" defer></script>
+  </body>
+</html>

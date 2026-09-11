@@ -1,8 +1,11 @@
-# FH6 EventLab Track Codes
+# FH6 EventLab Track Codes + Leaderboard
 
-A free, self-hosted landing page for **doomsantosracing** EventLab share codes — same nested track → race type → laps layout as the Notion page, without a Notion subscription.
+A free, self-hosted site for **doomsantosracing** EventLab share codes and community lap times.
 
-## How to update (the easy part)
+- Codes: https://doomsantos.github.io/eventlab-codes/
+- Leaderboard: https://doomsantos.github.io/eventlab-codes/leaderboard.html
+
+## How to update track codes
 
 Edit **`data/tracks.json`** only. You do **not** need to touch HTML/CSS/JS for new tracks or codes.
 
@@ -29,53 +32,61 @@ Edit **`data/tracks.json`** only. You do **not** need to touch HTML/CSS/JS for n
 }
 ```
 
-Paste that object into the `"tracks"` array, save, then push (or re-upload) to your host. The page picks it up automatically.
+Paste that object into the `"tracks"` array, save, commit, and push.
 
-### Mark something as coming soon
+## Leaderboard (v1) — PC collector
 
-Use `"comingSoon": true` and omit `events`.
+Lap times come from Forza Horizon 6 **Data Out** UDP on PC.
 
-### Change Instagram / page title
+### Run the collector
 
-Edit the top-level fields in `data/tracks.json`: `title`, `tagline`, `instagram`.
+From this project folder (Python 3.10+):
 
-## Preview locally
+```powershell
+python -m collector --port 9876 --web-port 8765
+```
 
-Because the page loads JSON with `fetch`, open it through a tiny local server (double-clicking `index.html` may block the data file).
+Open **http://127.0.0.1:8765**
 
-**PowerShell (from this folder):**
+### Game settings
+
+1. FH6 → **Settings → HUD and Gameplay → Data Out → On**
+2. **Data Out IP Address** → your PC IP (`127.0.0.1` if FH6 is on the same PC)
+3. **Data Out IP Port** → `9876` (avoid 5200–5300)
+4. Allow UDP 9876 through Windows Firewall if needed
+
+### Submit a lap
+
+1. Enter your **display name** and select the **track**
+2. Click **Save settings**
+3. Drive an EventLab event — when a lap completes, the UI shows **Lap ready**
+4. Click **Save lap** (keeps best time per name + track + Class/PI, e.g. `A 699`)
+5. Click **Export to site JSON** → writes `data/leaderboard.json`
+6. Commit and push so the public leaderboard updates
+
+```powershell
+python -m collector --export-only
+git add data/leaderboard.json
+git commit -m "Update leaderboard times"
+git push
+```
+
+### Notes
+
+- Ranked by **track**, then **Class/PI** (`A 699`)
+- Assists are not recorded
+- Xbox support / auto track detect come later
+
+## Preview the website locally
 
 ```powershell
 python -m http.server 8080
 ```
 
-Then visit http://localhost:8080
-
-## Free hosting (recommended: GitHub Pages)
-
-1. Create a GitHub account (free) if you don’t have one.
-2. Create a new public repository (e.g. `eventlab-codes`).
-3. Push this project to that repo.
-4. On GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**.
-5. Choose branch `main` (or `master`), folder `/ (root)`, Save.
-6. Your site will be at:
-   `https://YOUR_USERNAME.github.io/eventlab-codes/`
-
-After that, every time you edit `data/tracks.json` and push, the live page updates in a minute or two.
-
-### Other free options
-
-| Host | Notes |
-|------|--------|
-| [Cloudflare Pages](https://pages.cloudflare.com/) | Free, fast CDN; connect the same GitHub repo |
-| [Netlify](https://www.netlify.com/) | Free tier; drag-and-drop the folder or connect Git |
-| [Vercel](https://vercel.com/) | Free tier; connect Git |
-
-No paid plan needed for a static page like this.
+Visit http://localhost:8080 and http://localhost:8080/leaderboard.html
 
 ## Features
 
-- Nested expand/collapse (track → With/Without Drivatars → lap codes)
-- Tap any code to copy
-- Mobile-friendly dark racing layout
-- All content driven by one JSON file
+- Nested track → With/Without Drivatars → lap codes (tap to copy)
+- Public leaderboard filtered by track and Class/PI
+- PC Data Out collector with local SQLite + JSON export
