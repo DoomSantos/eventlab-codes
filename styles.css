@@ -552,3 +552,53 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.teaser-hero {
+  padding: 2rem 0 1rem;
+}
+
+.teaser-eyebrow {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.teaser-pulse {
+  display: flex;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 2rem;
+}
+
+.teaser-pulse span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.35;
+  animation: teaser-dot 1.4s ease-in-out infinite;
+}
+
+.teaser-pulse span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.teaser-pulse span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes teaser-dot {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
