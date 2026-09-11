@@ -155,10 +155,11 @@
               <th>Driver</th>
               <th>Time</th>
               <th>Class/PI</th>
+              <th>Car</th>
             </tr>
           </thead>
           <tbody id="laps-body">
-            <tr><td colspan="4" class="muted">No laps yet</td></tr>
+            <tr><td colspan="5" class="muted">No laps yet</td></tr>
           </tbody>
         </table>
       </section>
@@ -201,7 +202,7 @@
       function renderLaps(entries) {
         const body = $("laps-body");
         if (!entries.length) {
-          body.innerHTML = `<tr><td colspan="4" class="muted">No laps yet</td></tr>`;
+          body.innerHTML = `<tr><td colspan="5" class="muted">No laps yet</td></tr>`;
           return;
         }
         body.innerHTML = entries
@@ -211,6 +212,7 @@
               <td>${e.player_name}</td>
               <td>${e.lap_time}</td>
               <td>${e.class_pi}</td>
+              <td>${e.car || "—"}</td>
             </tr>`
           )
           .join("");
@@ -224,7 +226,7 @@
         $("pending-error").textContent = "";
         if (!lap) return;
         $("pending-text").textContent =
-          `${lap.lap_time} · ${lap.class_pi} · car #${lap.car_ordinal}`;
+          `${lap.lap_time} · ${lap.class_pi} · ${lap.car || "Car #" + lap.car_ordinal}`;
         $("pending-queue").textContent =
           count > 1 ? `${count} laps waiting — saving/discarding one at a time` : "";
       }
@@ -253,7 +255,7 @@
         $("packets").textContent = `${state.packets_per_sec} pkt/s`;
         if (live) {
           $("live-class").textContent = live.class_pi;
-          $("live-lap").textContent = `Lap ${live.lap_number} · current ${live.current_lap}`;
+          $("live-lap").textContent = `Lap ${live.lap_number} · current ${live.current_lap}${live.car ? " · " + live.car : ""}`;
         } else {
           $("live-class").textContent = "Class/PI —";
           $("live-lap").textContent = "Lap —";

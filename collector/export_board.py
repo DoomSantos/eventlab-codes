@@ -10,9 +10,28 @@ from .store import LapStore
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT = ROOT / "data" / "leaderboard.json"
+CARS_JSON = ROOT / "data" / "cars.json"
+
+
+def load_car_names(path: Path = CARS_JSON) -> dict[str, str]:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return {str(k): str(v) for k, v in data.items()}
+
+
+def car_label(car_ordinal: int, car_names: dict[str, str]) -> str:
+    name = car_names.get(str(car_ordinal))
+    if name:
+        return name
+    return f"Car #{car_ordinal}"
 
 
 def export_leaderboard(store: LapStore, out_path: Path = DEFAULT_OUT) -> Path:
+    car_names = load_car_names()
     laps = store.all_laps()
     payload = {
         "updated_at": None,
@@ -26,6 +45,7 @@ def export_leaderboard(store: LapStore, out_path: Path = DEFAULT_OUT) -> Path:
                 "pi": lap.car_pi,
                 "class_pi": lap.class_pi_label,
                 "car_ordinal": lap.car_ordinal,
+                "car": car_label(lap.car_ordinal, car_names),
                 "created_at": lap.created_at,
             }
             for lap in laps

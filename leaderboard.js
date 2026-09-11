@@ -23,6 +23,10 @@ function uniqueSorted(values) {
   );
 }
 
+function carDisplay(entry) {
+  return entry.car || (entry.car_ordinal != null ? `Car #${entry.car_ordinal}` : "—");
+}
+
 function fillFilters() {
   const tracks = uniqueSorted(entries.map((e) => e.track));
   trackFilter.innerHTML = tracks
@@ -68,7 +72,7 @@ function render() {
     : "No times for this filter yet";
 
   if (!rows.length) {
-    boardBody.innerHTML = `<tr><td colspan="4">No lap times yet for this selection.</td></tr>`;
+    boardBody.innerHTML = `<tr><td colspan="5">No lap times yet for this selection.</td></tr>`;
     return;
   }
 
@@ -80,6 +84,7 @@ function render() {
         <td>${escapeHtml(entry.player)}</td>
         <td class="time">${escapeHtml(entry.lap_time)}</td>
         <td>${escapeHtml(label)}</td>
+        <td>${escapeHtml(carDisplay(entry))}</td>
       </tr>`;
     })
     .join("");

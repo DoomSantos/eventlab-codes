@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from .export_board import DEFAULT_OUT, export_leaderboard
+from .export_board import DEFAULT_OUT, car_label, export_leaderboard, load_car_names
 from .lap_detect import CompletedLap, LapDetector
 from .packet import PACKET_SIZE, format_lap_time, parse_packet
 from .store import LapStore
@@ -35,6 +35,7 @@ class CollectorState:
     def __init__(self, store: LapStore, tracks: list[str]) -> None:
         self.store = store
         self.tracks = tracks
+        self.car_names = load_car_names()
         self.player_name = ""
         self.track = tracks[0] if tracks else ""
         self.detector = LapDetector()
@@ -53,6 +54,7 @@ class CollectorState:
             "car_pi": lap.car_pi,
             "class_pi": f"{lap.class_name} {lap.car_pi}",
             "car_ordinal": lap.car_ordinal,
+            "car": car_label(lap.car_ordinal, self.car_names),
             "lap_number": lap.lap_number,
         }
 
@@ -67,6 +69,7 @@ class CollectorState:
                     "current_lap": format_lap_time(self.live.current_lap),
                     "best_lap": format_lap_time(self.live.best_lap),
                     "is_race_on": self.live.is_race_on,
+                    "car": car_label(self.live.car_ordinal, self.car_names),
                 }
             laps = [
                 {
@@ -74,6 +77,7 @@ class CollectorState:
                     "player_name": lap.player_name,
                     "lap_time": format_lap_time(lap.lap_time_s),
                     "class_pi": lap.class_pi_label,
+                    "car": car_label(lap.car_ordinal, self.car_names),
                 }
                 for lap in self.store.all_laps()
             ]
@@ -289,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.export_only:
         out = export_leaderboard(store, DEFAULT_OUT)
-        print(f"Exported {len(store.all_laps())} laps → {out}")
+        print(f"Exported {len(store.all_laps())} laps -> {out}")
         return 0
 
     if not tracks:
