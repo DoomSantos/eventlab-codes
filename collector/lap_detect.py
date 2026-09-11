@@ -148,8 +148,13 @@ class LapDetector:
     def feed(self, tel: Telemetry) -> CompletedLap | None:
         now = time.monotonic()
 
+        # Do not hard-reset on IsRaceOn==0: pause/rewind often drop race-on
+        # (or stop packets). Keep lap state so we can record the discontinuity.
         if not tel.is_race_on:
-            self.reset()
+            if self._last_tel is not None and self._pending_gap_start is None:
+                self._pending_gap_start = self._last_packet_at or now
+                self._pending_gap_before = self._last_tel
+            self._last_packet_at = now
             return None
 
         if self._last_packet_at is not None:
