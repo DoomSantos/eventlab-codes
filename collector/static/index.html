@@ -92,7 +92,8 @@
       }
       .pill.live { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
       .pill.clean { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
-      .pill.suspect { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
+      .pill.paused { color: #7ab6ff; border-color: rgba(122, 182, 255, 0.45); }
+      .pill.rewound, .pill.suspect { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
       .muted { color: var(--muted); }
       .error { color: #ff8a7a; margin: 0.5rem 0 0; }
       .table-wrap { overflow-x: auto; }
@@ -268,7 +269,7 @@
         table.hidden = false;
         body.innerHTML = laps
           .map((lap) => {
-            const integrityClass = lap.suspect_rewind ? "suspect" : "clean";
+            const integrityClass = (lap.integrity || "Clean").toLowerCase();
             const jumps = (lap.gap_jumps_m || []).map((n) => `${n}m`).join(", ") || "—";
             return `<tr class="${lap.uploaded ? "uploaded" : ""}">
               <td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>

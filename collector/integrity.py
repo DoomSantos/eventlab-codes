@@ -1,0 +1,34 @@
+"""Integrity classification from captured UDP gap jumps."""
+
+from __future__ import annotations
+
+PAUSE_JUMP_MAX_M = 8.0
+REWIND_JUMP_MIN_M = 25.0
+TELEPORT_IGNORE_M = 1500.0
+
+
+def meaningful_jumps(gaps: list[dict] | tuple) -> list[float]:
+    jumps = []
+    for g in gaps or []:
+        if hasattr(g, "jump_m"):
+            jump = float(g.jump_m)
+        else:
+            jump = float(g.get("jump_m") or 0.0)
+        if jump < TELEPORT_IGNORE_M:
+            jumps.append(jump)
+    return jumps
+
+
+def classify_integrity(gaps: list | tuple) -> str:
+    """Return clean | paused | rewound | suspect."""
+    if not gaps:
+        return "clean"
+    jumps = meaningful_jumps(gaps)
+    if not jumps:
+        return "paused"
+    biggest = max(jumps)
+    if biggest >= REWIND_JUMP_MIN_M:
+        return "rewound"
+    if biggest <= PAUSE_JUMP_MAX_M:
+        return "paused"
+    return "suspect"

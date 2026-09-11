@@ -26,6 +26,7 @@ from dataclasses import dataclass
 
 from .capture import VALID_LABELS, capture_counts, capture_payload, save_capture
 from .export_board import DEFAULT_OUT, car_label, export_leaderboard, load_car_names
+from .integrity import classify_integrity
 from .lap_detect import CompletedLap, LapDetector
 from .packet import PACKET_SIZE, format_lap_time, parse_packet
 from .store import LapStore
@@ -74,7 +75,7 @@ class CollectorState:
             "lap_number": lap.lap_number,
             "stream_gaps": lap.stream_gaps,
             "suspect_rewind": lap.suspect_rewind,
-            "integrity": "Suspect" if lap.suspect_rewind else "Clean",
+            "integrity": classify_integrity(lap.gaps).title(),
             "gap_jumps_m": [g.jump_m for g in lap.gaps],
             "gap_durations_s": [g.duration_s for g in lap.gaps],
             "path_points": len(lap.path),
