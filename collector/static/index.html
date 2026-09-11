@@ -121,6 +121,9 @@
           <button id="export" class="secondary" type="button">Export to site JSON</button>
         </div>
         <p id="settings-msg" class="muted"></p>
+        <p class="muted" style="margin:0.35rem 0 0;font-size:0.88rem;">
+          Saves keep your <strong>best</strong> time per track + Class/PI only.
+        </p>
       </section>
 
       <section class="panel">
@@ -299,7 +302,8 @@
       $("export").onclick = async () => {
         try {
           const result = await api("/api/export", { method: "POST", body: "{}" });
-          $("settings-msg").textContent = `Exported ${result.count} entries → ${result.path}`;
+          $("settings-msg").textContent =
+            `Export OK — ${result.count} best lap(s) written. Open /board-lab.html to check.`;
         } catch (err) {
           $("settings-msg").textContent = err.message;
         }

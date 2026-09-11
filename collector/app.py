@@ -217,11 +217,12 @@ def make_handler(state: CollectorState):
                     out = export_leaderboard(state.store, DEFAULT_OUT)
                     self._json(
                         200,
-                        {
-                            "ok": True,
-                            "path": str(out),
-                            "count": len(state.store.all_laps()),
-                        },
+            {
+                "ok": True,
+                "path": str(out),
+                "count": len(state.store.all_laps()),
+                "hint": "Open board-lab.html on the site to verify",
+            },
                     )
                     return
                 self._json(404, {"error": "Not found"})
