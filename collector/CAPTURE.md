@@ -1,42 +1,31 @@
 # Albert Park capture protocol
 
-Do this **before** more leaderboard polish. Labeled captures unlock track matching and pause-vs-rewind detection.
+## Batch 1 status: complete
 
-## Priority
+- 12 clean / 10 paused / 10 rewound captured
+- Track fingerprint built: `data/fingerprints/albert-park.json`
+- All clean laps match Albert Park (~2–3m average path error)
 
-1. Capture labeled Albert Park laps (this doc)
-2. Build a simple matcher from those files
-3. Then resume public board / multiplayer submit
+## Gap / rewind note
 
-## How many laps
+Batch 1 stored **no gap events** because pause/rewind briefly cleared `IsRaceOn` and the detector hard-reset. That is fixed now.
 
-| Label | Count | What to do on that lap |
-|-------|------:|------------------------|
-| `clean` | **12** | Full lap, no pause, no rewind |
-| `paused` | **10** | Pause once mid-lap (2–5 sec), resume, finish. No rewind |
-| `rewound` | **10** | Rewind once mid-lap, resume, finish. No pause |
-| Mixed / messy | 0 for now | Skip — labels must be pure |
+## Batch 2 (needed for pause vs rewind)
 
-**Total: ~32 laps** on Albert Park is enough for a first verification model.
+Only these extras, with the **restarted** collector:
 
-Same car/class is fine. Variety later helps; purity of the label matters more now.
+| Label | Extra laps |
+|-------|------------:|
+| `paused` | **5** |
+| `rewound` | **5** |
+
+One behaviour per lap. After save, check the session list shows **Gaps > 0** (or open the JSON and confirm `"gaps": [...]` is not empty).
 
 ## Collector steps
 
-1. Restart collector, open http://127.0.0.1:8765
-2. Set display name + track **Albert Park**
-3. Drive one behaviour per lap
-4. In the session list, set **Your label**
-5. Tick the lap(s) → **Save captures**
-6. Files land in `collector/captures/albert-park/*.json`
+1. Open http://127.0.0.1:8765
+2. Track = Albert Park
+3. Drive → label → Save captures
+4. Files go to `collector/captures/albert-park/`
 
-Each file stores path samples (x/y/z) plus every UDP gap with duration and position jump on resume.
-
-## What we learn from that
-
-- **Track ID:** clean paths become the Albert Park reference shape
-- **Pause vs rewind:** both create gaps; rewind should show a larger backward position jump on resume, pause should resume near the same place
-
-## After you hit the counts
-
-Tell me and we’ll build the first auto-classifier from `collector/captures/albert-park/`.
+When batch 2 is done, we can finish Clean / Paused / Rewound classification.
