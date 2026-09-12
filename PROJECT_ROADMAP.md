@@ -19,7 +19,7 @@ Static EventLab **codes** site + **PC collector** (FH6 Data Out) → **timing AP
 | Deploy hardening (env, CORS, Docker, docs) | **Done** | Waiting CD Railway/Fly account to go live |
 | Albert Park auto-track | **Done** | Fingerprint sets track after matched lap |
 | Production API host go-live | **Done** | Railway `dsr-eventlab-timing-production.up.railway.app` |
-| Public leaderboard unveil | **Done** | Live 24h board on `leaderboard.html` |
+| Public leaderboard unveil | Waiting CD | `leaderboard.html` teaser again until time-attack events |
 | Friend collector exe | **Done** | `dist/DSR-Lap-Collector.zip` + invite |
 | Player history page | Later | API `/v1/history` exists |
 | Mobile companion | Deferred | Same API later |

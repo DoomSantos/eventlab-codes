@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Live 24-hour EventLab timing board for doomsantosracing."
+      content="A new doomsantosracing EventLab feature is on the way."
     />
-    <title>Live timing · doomsantosracing</title>
+    <title>Coming soon · doomsantosracing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -22,74 +22,41 @@
     <main class="page">
       <nav class="site-nav" aria-label="Site">
         <a href="./">Codes</a>
-        <a href="./leaderboard.html" aria-current="page">Live timing</a>
+        <a href="./leaderboard.html" aria-current="page">Soon</a>
       </nav>
 
-      <header class="hero">
+      <header class="hero teaser-hero">
+        <div class="flag" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
         <p class="brand">doomsantosracing</p>
-        <p class="teaser-eyebrow">Rolling 24 hours</p>
-        <h1>Live timing</h1>
+        <p class="teaser-eyebrow">In the works</p>
+        <h1>A new timing feature is coming</h1>
         <p class="tagline">
-          Best Clean lap per driver. Tap a name for every lap in the last 24 hours.
+          We’re building something for the tracks. Details stay under wraps for
+          now — watch this space.
         </p>
+        <p class="instagram-line">
+          Follow
+          <a
+            href="https://www.instagram.com/doomsantosracing/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >doomsantosracing</a
+          >
+          for the drop.
+        </p>
+        <div class="teaser-pulse" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
       </header>
-
-      <section class="panel-block" aria-label="Who is racing">
-        <h2 class="section-title">Who’s racing</h2>
-        <p id="live-empty" class="muted">Nobody live right now.</p>
-        <ul id="live-body" class="live-list"></ul>
-      </section>
-
-      <section class="board-controls panel-block" aria-label="Filters">
-        <div class="control-grid">
-          <div>
-            <label for="track-filter">Track</label>
-            <select id="track-filter"></select>
-          </div>
-          <div>
-            <label for="class-filter">Class / PI</label>
-            <select id="class-filter">
-              <option value="all">All</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel-block" aria-label="Rankings">
-        <div class="board-meta">
-          <p id="result-count" class="muted">Loading…</p>
-          <p id="updated-at" class="muted"></p>
-        </div>
-        <p class="muted board-hint">Tap a driver to see all their Clean laps (newest first).</p>
-        <div class="table-wrap">
-          <table class="board-table">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Driver</th>
-                <th scope="col">Time</th>
-                <th scope="col">Class/PI</th>
-                <th scope="col">Car</th>
-              </tr>
-            </thead>
-            <tbody id="board-body">
-              <tr>
-                <td colspan="5">Loading…</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p id="board-error" class="load-error" hidden></p>
-      </section>
 
       <footer class="footer">
         <p>
-          PC collector + invite required to submit ·
-          <a class="inline-link" href="./">Codes</a>
+          Share codes are live on the
+          <a class="inline-link" href="./">codes page</a>
         </p>
       </footer>
     </main>
-
-    <script src="board-live.js" defer></script>
   </body>
 </html>
