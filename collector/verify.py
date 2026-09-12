@@ -7,10 +7,29 @@ import math
 from pathlib import Path
 
 from .integrity import classify_integrity, meaningful_jumps
+from .paths import project_root
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = project_root()
 FINGERPRINT = ROOT / "data" / "fingerprints" / "albert-park.json"
-CAPTURE_DIR = ROOT / "collector" / "captures" / "albert-park"
+CAPTURE_DIR = project_root() / "collector" / "captures" / "albert-park"
+
+# Live laps can be slightly short of full-reference coverage; keep verify script strict.
+LIVE_COVERAGE_THRESHOLD = 0.45
+LIVE_MATCH_THRESHOLD_M = 10.0
+
+_fingerprint_cache: dict | None = None
+
+
+def load_fingerprint() -> dict:
+    global _fingerprint_cache
+    if _fingerprint_cache is None:
+        _fingerprint_cache = json.loads(FINGERPRINT.read_text(encoding="utf-8"))
+    return _fingerprint_cache
+
+
+def clear_fingerprint_cache() -> None:
+    global _fingerprint_cache
+    _fingerprint_cache = None
 
 
 def downsample(path: list[dict], step_m: float = 8.0) -> list[dict]:
@@ -45,10 +64,6 @@ def coverage(query: list[dict], ref: list[dict], radius_m: float = 20.0) -> floa
     return hit / len(ref)
 
 
-def load_fingerprint() -> dict:
-    return json.loads(FINGERPRINT.read_text(encoding="utf-8"))
-
-
 def evaluate_capture(data: dict, fingerprint: dict | None = None) -> dict:
     fingerprint = fingerprint or load_fingerprint()
     ref = fingerprint["points"]
@@ -74,6 +89,41 @@ def evaluate_capture(data: dict, fingerprint: dict | None = None) -> dict:
         "gap_count": len(gaps),
         "max_jump_m": round(max(jumps), 3) if jumps else 0.0,
         "integrity_ok": integrity == expected,
+    }
+
+
+def match_path(
+    path: list[dict] | tuple,
+    fingerprint: dict | None = None,
+    *,
+    live: bool = True,
+) -> dict:
+    """Score a live lap path against the Albert Park fingerprint."""
+    fingerprint = fingerprint or load_fingerprint()
+    points: list[dict] = []
+    for p in path:
+        if isinstance(p, dict):
+            points.append({"x": float(p["x"]), "z": float(p["z"])})
+        else:
+            points.append({"x": float(p.x), "z": float(p.z)})
+    ref = fingerprint["points"]
+    query = downsample(points, step_m=float(fingerprint.get("step_m", 8)))
+    dist = mean_nearest(query, ref)
+    cov = coverage(query, ref)
+    if live:
+        dist_ok = dist <= LIVE_MATCH_THRESHOLD_M
+        cov_ok = cov >= LIVE_COVERAGE_THRESHOLD
+    else:
+        dist_ok = dist <= float(fingerprint.get("match_threshold_m", 8))
+        cov_ok = cov >= float(fingerprint.get("coverage_threshold", 0.55))
+    matched = bool(query) and dist_ok and cov_ok
+    return {
+        "track": fingerprint.get("track", "Albert Park"),
+        "matched": matched,
+        "distance_m": round(dist, 3) if dist != float("inf") else None,
+        "coverage": round(cov, 3),
+        "path_points": len(points),
+        "query_points": len(query),
     }
 
 

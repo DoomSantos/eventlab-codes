@@ -116,12 +116,22 @@
     <main>
       <h1>DSR Lap Collector</h1>
       <p class="sub">
-        Drive Albert Park test laps, label each one (clean / paused / rewound), then
-        <strong>Save captures</strong> for verification research. Upload only the times
-        you want on the public board.
+        FH6 Data Out → local session list. Claim an invite to auto-upload
+        <strong>Clean</strong> laps to the timing board API. Capture labeling stays for research.
       </p>
 
       <section class="panel">
+        <h2>Cloud timing board</h2>
+        <div class="row">
+          <div>
+            <label for="api-base">API URL</label>
+            <input id="api-base" placeholder="http://127.0.0.1:8787" />
+          </div>
+          <div>
+            <label for="invite">Invite code</label>
+            <input id="invite" autocomplete="off" placeholder="From DSR" />
+          </div>
+        </div>
         <div class="row">
           <div>
             <label for="player">Display name</label>
@@ -133,16 +143,13 @@
           </div>
         </div>
         <div class="actions">
-          <button id="save-settings" type="button">Save settings</button>
-          <button id="export" class="secondary" type="button">Export board JSON</button>
+          <button id="claim" type="button">Claim invite</button>
+          <button id="save-settings" class="secondary" type="button">Save settings</button>
+          <button id="export" class="secondary" type="button">Export local JSON</button>
         </div>
+        <p id="cloud-status" class="muted">Not claimed yet.</p>
         <p id="settings-msg" class="muted"></p>
         <div id="capture-counts" class="counts"></div>
-        <p class="muted" style="margin:0.35rem 0 0;font-size:0.88rem;">
-          Upload keeps your <strong>best</strong> time per track + Class/PI.
-          <strong>Rewound</strong> laps can still be uploaded — they’re marked on the board.
-          Pausing counts as <strong>Clean</strong>.
-        </p>
       </section>
 
       <section class="panel">
@@ -163,9 +170,11 @@
               <tr>
                 <th><input id="select-all" type="checkbox" title="Select all" /></th>
                 <th>Time</th>
+                <th>Track</th>
                 <th>Class/PI</th>
                 <th>Car</th>
                 <th>Auto</th>
+                <th>Cloud</th>
                 <th>Gaps</th>
                 <th>Your label</th>
                 <th>Capture</th>
@@ -177,7 +186,8 @@
         <p id="session-error" class="error" hidden></p>
         <div class="actions">
           <button id="save-captures" type="button">Save captures</button>
-          <button id="upload-selected" class="secondary" type="button">Upload selected to board</button>
+          <button id="cloud-selected" type="button">Send selected to cloud</button>
+          <button id="upload-selected" class="secondary" type="button">Save selected locally</button>
           <button id="remove-selected" class="secondary" type="button">Remove selected</button>
           <button id="clear-session" class="secondary" type="button">Clear list</button>
         </div>
@@ -273,12 +283,19 @@
           .map((lap) => {
             const integrityClass = (lap.integrity || "Clean").toLowerCase();
             const jumps = (lap.gap_jumps_m || []).map((n) => `${n}m`).join(", ") || "—";
-            return `<tr class="${lap.uploaded ? "uploaded" : ""}">
+            const cloud = lap.cloud_uploaded
+              ? "Sent"
+              : lap.cloud_error
+                ? "Err"
+                : "—";
+            return `<tr class="${lap.uploaded || lap.cloud_uploaded ? "uploaded" : ""}">
               <td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>
               <td>${lap.lap_time}</td>
+              <td>${lap.track || "—"}</td>
               <td>${lap.class_pi}</td>
               <td>${lap.car || "—"}</td>
               <td><span class="pill ${integrityClass}">${lap.integrity}</span></td>
+              <td title="${lap.cloud_error || ""}">${cloud}</td>
               <td title="${jumps}">${lap.stream_gaps || 0}</td>
               <td>
                 <select class="label-select" data-id="${lap.id}">
@@ -337,10 +354,30 @@
         const state = await api("/api/state");
         if (!hydrated) {
           if (state.player_name) $("player").value = state.player_name;
+          if (state.cloud && state.cloud.api_base) $("api-base").value = state.cloud.api_base;
           fillTracks(state.tracks, state.track);
           hydrated = true;
+        } else if (state.track_hint) {
+          // Auto-detect won — don't keep a stale manual Monza selection
+          fillTracks(state.tracks, state.track);
         } else {
           fillTracks(state.tracks, $("track").value || state.track);
+        }
+        const cloud = state.cloud || {};
+        const cloudEl = $("cloud-status");
+        if (cloud.claimed) {
+          cloudEl.textContent = `Signed in as ${cloud.display_name} · auto-upload Clean laps · queue ${cloud.queue || 0}${cloud.last_ok ? " · " + cloud.last_ok : ""}${cloud.last_error ? " · err: " + cloud.last_error : ""}`;
+        } else {
+          cloudEl.textContent = `Not claimed · API ${cloud.api_base || "—"}${cloud.last_error ? " · " + cloud.last_error : ""}`;
+        }
+        const match = state.last_track_match;
+        if (state.track_hint) {
+          $("settings-msg").textContent = `Track auto-detected: ${state.track_hint}`;
+        } else if (match && match.error) {
+          $("settings-msg").textContent = `Track detect error: ${match.error}`;
+        } else if (match && match.matched === false) {
+          $("settings-msg").textContent =
+            `Track detect miss (dist ${match.distance_m ?? "?"}m, coverage ${match.coverage ?? "?"}, pts ${match.path_points ?? 0}) — using ${state.track}`;
         }
         const sessionKey = JSON.stringify(state.session_laps || []);
         if (sessionKey !== lastSessionKey) {
@@ -378,6 +415,10 @@
 
       $("save-settings").onclick = async () => {
         try {
+          await api("/api/cloud/settings", {
+            method: "POST",
+            body: JSON.stringify({ api_base: $("api-base").value.trim() }),
+          });
           await api("/api/settings", {
             method: "POST",
             body: JSON.stringify(currentSettings()),
@@ -386,6 +427,42 @@
           refresh();
         } catch (err) {
           $("settings-msg").textContent = err.message;
+        }
+      };
+
+      $("claim").onclick = async () => {
+        try {
+          await api("/api/cloud/settings", {
+            method: "POST",
+            body: JSON.stringify({ api_base: $("api-base").value.trim() }),
+          });
+          const result = await api("/api/cloud/claim", {
+            method: "POST",
+            body: JSON.stringify({
+              invite_code: $("invite").value.trim(),
+              display_name: $("player").value.trim(),
+            }),
+          });
+          $("settings-msg").textContent = `Claimed as ${result.display_name}. Clean laps will auto-upload.`;
+          $("invite").value = "";
+          await refresh();
+        } catch (err) {
+          $("settings-msg").textContent = err.message;
+        }
+      };
+
+      $("cloud-selected").onclick = async () => {
+        $("session-error").hidden = true;
+        try {
+          const result = await api("/api/cloud/upload", {
+            method: "POST",
+            body: JSON.stringify({ ids: selectedIds() }),
+          });
+          $("settings-msg").textContent = `Queued ${result.queued} lap(s) for cloud upload`;
+          await refresh();
+        } catch (err) {
+          $("session-error").hidden = false;
+          $("session-error").textContent = err.message;
         }
       };
 

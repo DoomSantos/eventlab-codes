@@ -23,7 +23,7 @@
     <main class="page">
       <nav class="site-nav" aria-label="Site">
         <a href="./">Codes</a>
-        <a href="./leaderboard.html">Soon</a>
+        <a href="./leaderboard.html">Live timing</a>
         <a href="./board-lab.html" aria-current="page">Lab</a>
       </nav>
 
@@ -32,13 +32,19 @@
         <p class="teaser-eyebrow">Private test</p>
         <h1>Timing lab</h1>
         <p class="tagline">
-          Dev board for collector exports. Not the public feature page — use
-          this while we build.
+          Live 24h board from the timing API. Public “Soon” page stays teaser until
+          you’re ready to unveil.
         </p>
       </header>
 
+      <section class="panel-block" aria-label="Who is racing">
+        <h2 class="section-title">Who’s racing</h2>
+        <p id="live-empty" class="muted">Nobody live right now.</p>
+        <ul id="live-body" class="live-list"></ul>
+      </section>
+
       <section class="board-controls panel-block" aria-label="Filters">
-        <div class="control-grid control-grid-3">
+        <div class="control-grid">
           <div>
             <label for="track-filter">Track</label>
             <select id="track-filter"></select>
@@ -49,14 +55,6 @@
               <option value="all">All</option>
             </select>
           </div>
-          <div>
-            <label for="integrity-filter">Integrity</label>
-            <select id="integrity-filter">
-              <option value="all">All laps</option>
-              <option value="clean">Clean only</option>
-              <option value="rewound">Rewound only</option>
-            </select>
-          </div>
         </div>
       </section>
 
@@ -65,6 +63,7 @@
           <p id="result-count" class="muted">Loading…</p>
           <p id="updated-at" class="muted"></p>
         </div>
+        <p class="muted board-hint">Tap a driver to see all their Clean laps in the last 24 hours.</p>
         <div class="table-wrap">
           <table class="board-table">
             <thead>
@@ -74,30 +73,26 @@
                 <th scope="col">Time</th>
                 <th scope="col">Class/PI</th>
                 <th scope="col">Car</th>
-                <th scope="col">Integrity</th>
               </tr>
             </thead>
             <tbody id="board-body">
               <tr>
-                <td colspan="6">Loading…</td>
+                <td colspan="5">Loading…</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p id="board-error" class="load-error" hidden>
-          Couldn’t load <code>data/leaderboard.json</code>. Export from the
-          collector first, or serve the site over http (not file://).
-        </p>
+        <p id="board-error" class="load-error" hidden></p>
       </section>
 
       <footer class="footer">
         <p>
-          Reads <code>data/leaderboard.json</code> ·
+          Needs <code>python -m server</code> ·
           <a class="inline-link" href="./">Codes</a>
         </p>
       </footer>
     </main>
 
-    <script src="leaderboard.js" defer></script>
+    <script src="board-live.js" defer></script>
   </body>
 </html>

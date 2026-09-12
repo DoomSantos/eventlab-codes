@@ -6,9 +6,10 @@ import json
 from pathlib import Path
 
 from .packet import format_lap_time
+from .paths import project_root
 from .store import LapStore
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = project_root()
 DEFAULT_OUT = ROOT / "data" / "leaderboard.json"
 CARS_JSON = ROOT / "data" / "cars.json"
 

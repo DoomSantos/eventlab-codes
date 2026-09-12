@@ -1,0 +1,4 @@
+{
+  "apiBase": "https://dsr-eventlab-timing-production.up.railway.app",
+  "pollSeconds": 5
+}

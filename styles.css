@@ -478,6 +478,32 @@ h1 {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.section-title {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.live-list li {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-list li:last-child {
+  border-bottom: 0;
+}
+
 .control-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -549,6 +575,74 @@ h1 {
   color: var(--accent);
   font-weight: 700;
   letter-spacing: 0.03em;
+}
+
+.board-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.board-row {
+  cursor: pointer;
+}
+
+.board-row:hover,
+.board-row:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  outline: none;
+}
+
+.board-row.is-open {
+  background: rgba(232, 93, 76, 0.08);
+}
+
+.driver-name {
+  font-weight: 700;
+}
+
+.lap-count {
+  display: inline-block;
+  margin-left: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.board-updated {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.board-detail-head td {
+  border-bottom: 0;
+  padding-top: 0.85rem;
+  font-size: 0.82rem;
+}
+
+.board-detail td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.board-detail.is-best td {
+  color: var(--text);
+}
+
+.board-detail.is-best .time {
+  color: var(--accent);
+}
+
+.best-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(232, 93, 76, 0.45);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-weight: 700;
 }
 
 .integrity-pill {

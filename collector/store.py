@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .packet import class_from_pi
+from .paths import writable_dir
 
-DEFAULT_DB = Path(__file__).resolve().parent / "laps.db"
+DEFAULT_DB = writable_dir() / "laps.db"
 
 
 @dataclass(frozen=True, slots=True)

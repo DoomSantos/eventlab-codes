@@ -38,6 +38,13 @@ Paste that object into the `"tracks"` array, save, commit, and push.
 
 Lap times come from Forza Horizon 6 **Data Out** UDP on PC.
 
+### Timing API (local)
+
+```powershell
+python -m server --port 8787
+python -m server --create-invite
+```
+
 ### Run the collector
 
 From this project folder (Python 3.10+):
@@ -46,7 +53,9 @@ From this project folder (Python 3.10+):
 python -m collector --port 9876 --web-port 8765
 ```
 
-Open **http://127.0.0.1:8765**
+Open **http://127.0.0.1:8765** → claim an invite → Clean laps auto-upload.
+
+Private lab board (API): http://127.0.0.1:8080/board-lab.html (with `python -m http.server 8080` and the API running).
 
 ### Game settings
 

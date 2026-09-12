@@ -9,9 +9,9 @@ from pathlib import Path
 from .export_board import car_label, load_car_names
 from .lap_detect import CompletedLap
 from .packet import format_lap_time
+from .paths import project_root, writable_dir
 
-ROOT = Path(__file__).resolve().parent.parent
-CAPTURE_ROOT = ROOT / "collector" / "captures"
+CAPTURE_ROOT = writable_dir() / "captures"
 
 VALID_LABELS = ("clean", "paused", "rewound", "unknown")
 
