@@ -6,13 +6,13 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta
       name="description"
-      content="Private timing lab for doomsantosracing EventLab testing."
+      content="Private timing lab for DoomSantos Racing EventLab testing."
     />
-    <title>Timing lab · doomsantosracing</title>
+    <title>Timing lab · DoomSantos Racing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -20,20 +20,28 @@
   <body>
     <div class="atmosphere" aria-hidden="true"></div>
 
-    <main class="page">
-      <nav class="site-nav" aria-label="Site">
-        <a href="./">Codes</a>
-        <a href="./leaderboard.html">Soon</a>
-        <a href="./board-lab.html" aria-current="page">Lab</a>
-      </nav>
+    <div class="banner-hero">
+      <img
+        class="banner-art"
+        src="assets/brand/banner-hero.jpg"
+        alt=""
+        width="1024"
+        height="319"
+      />
+    </div>
 
+    <main class="page">
       <header class="hero">
-        <p class="brand">doomsantosracing</p>
+        <nav class="site-nav" aria-label="Site">
+          <a href="./">Track Codes</a>
+          <a href="./leaderboard.html">Time Attack</a>
+          <a href="./board-lab.html" aria-current="page">Lab</a>
+        </nav>
         <p class="teaser-eyebrow">Private test</p>
-        <h1>Timing lab</h1>
+        <h1 class="lab-heading">Timing lab</h1>
         <p class="tagline">
-          Private 24h board from the timing API. Public site stays “Soon” until
-          time-attack events are ready.
+          Private 24h board from the timing API. Public Time Attack stays on the
+          How To Use teaser until EventLab Time Attack codes are ready.
         </p>
       </header>
 
@@ -88,7 +96,7 @@
       <footer class="footer">
         <p>
           Needs <code>python -m server</code> ·
-          <a class="inline-link" href="./">Codes</a>
+          <a class="inline-link" href="./">Track Codes</a>
         </p>
       </footer>
     </main>

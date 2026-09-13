@@ -346,7 +346,17 @@ class CollectorState:
     ) -> dict:
         with self._lock:
             if api_base is not None:
-                self.cloud.set_api_base(api_base.strip())
+                new_base = api_base.strip().rstrip("/")
+                old_base = self.cloud.cfg.api_base.rstrip("/")
+                self.cloud.set_api_base(new_base)
+                # Token is per-server; switching API requires a fresh invite claim.
+                if new_base != old_base and self.cloud.cfg.device_token:
+                    self.cloud.cfg.device_token = ""
+                    self.cloud.cfg.display_name = ""
+                    self.player_name = ""
+                    self.cloud_last_error = "API URL changed — claim a new invite"
+                    self.cloud_last_ok = ""
+                    self._cloud_queue.clear()
                 self.cloud.save()
             if auto_upload is not None:
                 self.auto_cloud_upload = bool(auto_upload)

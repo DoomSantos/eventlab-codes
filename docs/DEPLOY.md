@@ -43,7 +43,7 @@ railway up -y -d --ci
 - [ ] Lab board (`board-config.json`) uses production `apiBase`  
 - [ ] CORS includes Pages origin  
 - [ ] CD keeps invite codes private  
-- [ ] Public `leaderboard.html` unveil when CD says go  
+- [ ] Public Live Timing / Leaderboards unveil on `leaderboard.html` when TA codes + fingerprints ready  
 
 ## Note on SQLite
 

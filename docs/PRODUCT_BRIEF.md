@@ -1,25 +1,35 @@
-# Product brief — PC collector → timing board
+# Product brief — DoomSantos Racing EventLab + Time Attack
 
-**Brand:** doomsantosracing (DSR) EventLab codes + community timing.  
+**Brand:** DoomSantos Racing (`doomsantosracing`).  
 **Audience:** FH6 EventLab drivers using DSR share codes.
 
 ## Goal (current phase)
 
-Safe, easy path: **PC collector** listens to FH6 Data Out → validates laps → **auto-uploads** to a timing API → public site shows **rolling 24h board**, **session/history**, and **who’s racing live**.
+PC collector (FH6 Data Out) → validate laps → upload to timing API → **Time Attack** public surfaces (How To Use, Live Timing, Leaderboards).  
+Only **Time Attack** EventLab events count (offset-grid / fingerprint). Invite gate for submit; boards public to view.
 
-**Out of scope for now:** Android/iOS companion (same API later).
+**Out of scope for now:** Android/iOS companion; Microsoft/Xbox OAuth (see `docs/MICROSOFT_OAUTH_NOTES.md`).
 
 ## Locked from Creative Director
 
 | Topic | Decision |
 |-------|----------|
 | Platform | PC collector first |
-| Timing buckets | Class + PI (e.g. `A 699`) |
+| Product name | **Time Attack** |
+| Timing buckets | Class + PI shown; Leaderboard **filter by class letter only** |
 | Assists | Not recorded |
 | Xbox / MSA OAuth | Not for this phase |
-| Codes site | GitHub Pages static (`data/tracks.json`) |
-| Lap integrity | Clean / Paused / Rewound from UDP gaps (Albert Park proven) |
-| Manual export | Still works locally; auto-upload is the next product path |
+| Codes site | GitHub Pages; Track Codes + Time Attack IA |
+| Lap integrity | Clean / Paused / Rewound from UDP gaps |
+| What counts | **Time Attack events only** |
+| Session day | **AEST (UTC+10)** |
+| Live Timing | Best of **today (AEST)** + today’s laps expand |
+| Leaderboards | 1 best per player × track × class; Results = Anytime/Today/Week/Month/Year |
+| TA events | One per track, ~50 laps; quit anytime |
+| Public view | Live Timing + Leaderboards public; submit = invite + collector |
+| Until ready | **How To Use teaser** shipped; Live Timing / Leaderboards after TA codes |
+
+Full Time Attack IA + mockup decisions: **`docs/TIME_ATTACK.md`**.
 
 ## Engineering defaults (not CD-locked — change if CD overrides)
 

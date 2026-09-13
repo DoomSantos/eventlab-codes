@@ -3,7 +3,7 @@
 ## Live URLs
 
 - Timing API: https://dsr-eventlab-timing-production.up.railway.app
-- Public board: https://doomsantos.github.io/eventlab-codes/leaderboard.html  
+- Public Time Attack (How To Use teaser): https://doomsantos.github.io/eventlab-codes/leaderboard.html  
   (after you push this commit to GitHub Pages)
 
 ## Send your friend
@@ -22,6 +22,11 @@
 6. Drive — Clean laps appear on the live board  
 
 ## You: mint more invites
+
+**Easiest:** double-click `mint-invite.bat` in the project folder.  
+It prints a new invite code and appends it to `server\.invites.txt`.
+
+Or run this in PowerShell from the project folder:
 
 ```powershell
 $admin = Get-Content -Raw server\.admin_token

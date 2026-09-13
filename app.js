@@ -127,8 +127,7 @@ function wireAccordions(root) {
 
 function applyMeta(data) {
   if (data.title) {
-    document.getElementById("page-title").textContent = data.title;
-    document.title = `${data.title} · ${data.instagram?.handle || "EventLab"}`;
+    document.title = `${data.title} · ${data.instagram?.handle || "DoomSantos Racing"}`;
   }
 
   if (data.tagline) {
