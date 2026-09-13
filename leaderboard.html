@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      if (location.hostname.endsWith("github.io")) {
+        const base = document.createElement("base");
+        base.href = "/eventlab-codes/";
+        document.head.appendChild(base);
+      }
+    </script>
     <meta
       name="description"
       content="DoomSantos Racing Time Attack — dedicated EventLab pace battles, live sessions, and leaderboards. Coming soon."
@@ -14,7 +21,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260913" />
   </head>
   <body>
     <div class="atmosphere" aria-hidden="true"></div>
@@ -22,7 +29,7 @@
     <div class="banner-hero">
       <img
         class="banner-art"
-        src="assets/brand/banner-hero.jpg"
+        src="brand/banner-hero.jpg"
         alt="DoomSantos Racing — wizard forging a race track"
         width="1024"
         height="319"
@@ -33,19 +40,19 @@
       <header class="hero">
         <nav class="site-nav" aria-label="Site">
           <a href="./">Track Codes</a>
-          <a href="./leaderboard.html" aria-current="page">Time Attack</a>
+          <a href="leaderboard.html" aria-current="page">Time Attack</a>
         </nav>
         <h1 class="page-title-fallback">Time Attack</h1>
         <img
           class="title-art title-art-ta"
-          src="assets/brand/title-time-attack-blend.png"
+          src="brand/title-time-attack-blend.png"
           alt="Time Attack"
           width="560"
           height="180"
         />
         <p class="teaser-eyebrow">Coming soon</p>
         <nav class="ta-subnav" aria-label="Time Attack sections">
-          <a href="./leaderboard.html" aria-current="page">How To Use</a>
+          <a href="leaderboard.html" aria-current="page">How To Use</a>
           <span class="ta-subnav-soon">Live Timing</span>
           <span class="ta-subnav-soon">Leaderboards</span>
         </nav>

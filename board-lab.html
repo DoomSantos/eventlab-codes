@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      if (location.hostname.endsWith("github.io")) {
+        const base = document.createElement("base");
+        base.href = "/eventlab-codes/";
+        document.head.appendChild(base);
+      }
+    </script>
     <meta name="robots" content="noindex, nofollow" />
     <meta
       name="description"
@@ -15,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260913" />
   </head>
   <body>
     <div class="atmosphere" aria-hidden="true"></div>
@@ -23,7 +30,7 @@
     <div class="banner-hero">
       <img
         class="banner-art"
-        src="assets/brand/banner-hero.jpg"
+        src="brand/banner-hero.jpg"
         alt=""
         width="1024"
         height="319"
@@ -34,8 +41,8 @@
       <header class="hero">
         <nav class="site-nav" aria-label="Site">
           <a href="./">Track Codes</a>
-          <a href="./leaderboard.html">Time Attack</a>
-          <a href="./board-lab.html" aria-current="page">Lab</a>
+          <a href="leaderboard.html">Time Attack</a>
+          <a href="board-lab.html" aria-current="page">Lab</a>
         </nav>
         <p class="teaser-eyebrow">Private test</p>
         <h1 class="lab-heading">Timing lab</h1>

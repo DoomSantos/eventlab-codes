@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      if (location.hostname.endsWith("github.io")) {
+        const base = document.createElement("base");
+        base.href = "/eventlab-codes/";
+        document.head.appendChild(base);
+      }
+    </script>
     <meta
       name="description"
       content="DoomSantos Racing EventLab track share codes. Tap a track, pick race type and laps, copy the code."
@@ -14,7 +21,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260913" />
   </head>
   <body>
     <div class="atmosphere" aria-hidden="true"></div>
@@ -22,7 +29,7 @@
     <div class="banner-hero">
       <img
         class="banner-art"
-        src="assets/brand/banner-hero.jpg"
+        src="brand/banner-hero.jpg"
         alt="DoomSantos Racing — wizard forging a race track"
         width="1024"
         height="319"
@@ -33,12 +40,12 @@
       <header class="hero">
         <nav class="site-nav" aria-label="Site">
           <a href="./" aria-current="page">Track Codes</a>
-          <a href="./leaderboard.html">Time Attack</a>
+          <a href="leaderboard.html">Time Attack</a>
         </nav>
         <h1 id="page-title" class="page-title-fallback">Track Codes</h1>
         <img
           class="title-art"
-          src="assets/brand/title-track-codes-blend.png"
+          src="brand/title-track-codes-blend.png"
           alt="Track Codes"
           width="640"
           height="200"
@@ -76,6 +83,6 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=20260913" defer></script>
   </body>
 </html>

@@ -132,6 +132,7 @@ body {
   height: auto;
   margin: 0.15rem auto 0.85rem;
   background: transparent;
+  mix-blend-mode: screen;
 }
 
 .title-art-ta {
