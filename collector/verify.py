@@ -78,7 +78,12 @@ def evaluate_capture(data: dict, fingerprint: dict | None = None) -> dict:
     integrity = classify_integrity(gaps)
     jumps = meaningful_jumps(gaps)
     human = data.get("label")
-    expected = "clean" if human == "paused" else human
+    # time_attack is a mode tag, not an integrity label
+    if human == "time_attack":
+        integrity_ok = True
+    else:
+        expected = "clean" if human == "paused" else human
+        integrity_ok = integrity == expected
     return {
         "track_claimed": data.get("track_claimed"),
         "label_human": human,
@@ -88,7 +93,7 @@ def evaluate_capture(data: dict, fingerprint: dict | None = None) -> dict:
         "integrity_auto": integrity,
         "gap_count": len(gaps),
         "max_jump_m": round(max(jumps), 3) if jumps else 0.0,
-        "integrity_ok": integrity == expected,
+        "integrity_ok": integrity_ok,
     }
 
 

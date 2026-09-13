@@ -13,7 +13,7 @@ from .paths import project_root, writable_dir
 
 CAPTURE_ROOT = writable_dir() / "captures"
 
-VALID_LABELS = ("clean", "paused", "rewound", "unknown")
+VALID_LABELS = ("clean", "paused", "rewound", "time_attack", "unknown")
 
 
 def _slug(value: str) -> str:

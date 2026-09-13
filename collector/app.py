@@ -318,7 +318,7 @@ class CollectorState:
                     return {
                         "ok": False,
                         "error": f"Set a label on lap {item.id} before saving capture "
-                        "(clean / paused / rewound)",
+                        "(clean / paused / rewound / Time Attack)",
                     }
                 payload = capture_payload(
                     lap=item.completed,

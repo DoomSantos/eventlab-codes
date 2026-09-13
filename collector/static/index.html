@@ -185,12 +185,16 @@
         </div>
         <p id="session-error" class="error" hidden></p>
         <div class="actions">
-          <button id="save-captures" type="button">Save captures</button>
+          <button id="save-captures" type="button">Save path captures</button>
           <button id="cloud-selected" type="button">Send selected to cloud</button>
-          <button id="upload-selected" class="secondary" type="button">Save selected locally</button>
+          <button id="upload-selected" class="secondary" type="button">Save times to local DB</button>
           <button id="remove-selected" class="secondary" type="button">Remove selected</button>
           <button id="clear-session" class="secondary" type="button">Clear list</button>
         </div>
+        <p class="muted" style="margin-top:0.5rem">
+          For Time Attack research: set label to <strong>Time Attack</strong>, select the laps, then
+          <strong>Save path captures</strong> (not “local DB”).
+        </p>
       </section>
 
       <section class="panel">
@@ -261,8 +265,27 @@
           box.innerHTML = "";
           return;
         }
-        box.innerHTML = ["clean", "paused", "rewound", "unknown"]
-          .map((key) => `<span class="pill">${key}: ${counts[key] || 0}</span>`)
+        box.innerHTML = ["clean", "paused", "rewound", "time_attack", "unknown"]
+          .map((key) => {
+            const shown = key === "time_attack" ? "Time Attack" : key;
+            return `<span class="pill">${shown}: ${counts[key] || 0}</span>`;
+          })
+          .join("");
+      }
+
+      function labelOptions(selected) {
+        const choices = [
+          ["unknown", "unknown"],
+          ["clean", "clean"],
+          ["paused", "paused"],
+          ["rewound", "rewound"],
+          ["time_attack", "Time Attack"],
+        ];
+        return choices
+          .map(
+            ([value, text]) =>
+              `<option value="${value}" ${selected === value ? "selected" : ""}>${text}</option>`
+          )
           .join("");
       }
 
@@ -299,10 +322,7 @@
               <td title="${jumps}">${lap.stream_gaps || 0}</td>
               <td>
                 <select class="label-select" data-id="${lap.id}">
-                  <option value="unknown" ${lap.label === "unknown" ? "selected" : ""}>unknown</option>
-                  <option value="clean" ${lap.label === "clean" ? "selected" : ""}>clean</option>
-                  <option value="paused" ${lap.label === "paused" ? "selected" : ""}>paused</option>
-                  <option value="rewound" ${lap.label === "rewound" ? "selected" : ""}>rewound</option>
+                  ${labelOptions(lap.label)}
                 </select>
               </td>
               <td>${lap.capture_saved ? "Saved" : "—"}</td>
