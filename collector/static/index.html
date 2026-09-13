@@ -174,6 +174,7 @@
                 <th>Class/PI</th>
                 <th>Car</th>
                 <th>Auto</th>
+                <th>Mode</th>
                 <th>Cloud</th>
                 <th>Gaps</th>
                 <th>Your label</th>
@@ -311,6 +312,7 @@
               : lap.cloud_error
                 ? "Err"
                 : "—";
+            const mode = lap.mode === "time_attack" ? "Time Attack" : "—";
             return `<tr class="${lap.uploaded || lap.cloud_uploaded ? "uploaded" : ""}">
               <td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>
               <td>${lap.lap_time}</td>
@@ -318,6 +320,7 @@
               <td>${lap.class_pi}</td>
               <td>${lap.car || "—"}</td>
               <td><span class="pill ${integrityClass}">${lap.integrity}</span></td>
+              <td>${mode}</td>
               <td title="${lap.cloud_error || ""}">${cloud}</td>
               <td title="${jumps}">${lap.stream_gaps || 0}</td>
               <td>
@@ -391,13 +394,30 @@
           cloudEl.textContent = `Not claimed · API ${cloud.api_base || "—"}${cloud.last_error ? " · " + cloud.last_error : ""}`;
         }
         const match = state.last_track_match;
+        const ta = state.last_ta_match;
+        const bits = [];
         if (state.track_hint) {
-          $("settings-msg").textContent = `Track auto-detected: ${state.track_hint}`;
+          bits.push(`Track auto-detected: ${state.track_hint}`);
         } else if (match && match.error) {
-          $("settings-msg").textContent = `Track detect error: ${match.error}`;
+          bits.push(`Track detect error: ${match.error}`);
         } else if (match && match.matched === false) {
-          $("settings-msg").textContent =
-            `Track detect miss (dist ${match.distance_m ?? "?"}m, coverage ${match.coverage ?? "?"}, pts ${match.path_points ?? 0}) — using ${state.track}`;
+          bits.push(
+            `Track detect miss (dist ${match.distance_m ?? "?"}m, coverage ${match.coverage ?? "?"}, pts ${match.path_points ?? 0}) — using ${state.track}`
+          );
+        }
+        if (ta && ta.matched) {
+          bits.push(
+            `Time Attack start matched (dist ${ta.distance_m ?? "?"}m, coverage ${ta.coverage ?? "?"})`
+          );
+        } else if (ta && ta.error) {
+          bits.push(`Time Attack detect: ${ta.error}`);
+        } else if (ta && ta.matched === false) {
+          bits.push(
+            `Time Attack start miss (dist ${ta.distance_m ?? "?"}m, coverage ${ta.coverage ?? "?"})`
+          );
+        }
+        if (bits.length) {
+          $("settings-msg").textContent = bits.join(" · ");
         }
         const sessionKey = JSON.stringify(state.session_laps || []);
         if (sessionKey !== lastSessionKey) {

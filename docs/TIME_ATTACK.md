@@ -46,6 +46,7 @@ Until unveil: **How To Use teaser** under Time Attack — basic “how it will w
 ## Engineering notes (not blocking unveil teaser)
 
 - Persist `mode=time_attack` (or event id) on uploads once fingerprints exist; reject/ignore non-TA for public boards.
+- **Albert Park TA start fingerprint shipped** (`data/fingerprints/albert-park-time-attack-start.json`); collector auto-detects offset start and sets `mode=time_attack` + research label. Server still needs a `mode` column before boards can filter to TA-only.
 - Day bucket = AEST calendar date of `submitted_at`.
 - Leaderboard class filter matches `class_name` only; display still `class_name + PI`.
 - Profile pages use existing `/v1/history` (extend as needed).

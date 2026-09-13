@@ -33,7 +33,7 @@ from .lap_detect import CompletedLap, LapDetector
 from .packet import PACKET_SIZE, format_lap_time, parse_packet
 from .store import LapStore
 from .tracks import load_track_names
-from .verify import match_path
+from .verify import match_path, match_time_attack_start
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -48,6 +48,7 @@ class SessionLap:
     cloud_uploaded: bool = False
     cloud_error: str | None = None
     label: str = "unknown"
+    mode: str = ""
     capture_saved: bool = False
     capture_path: str | None = None
 
@@ -64,6 +65,7 @@ class CollectorState:
         self.auto_track_detect = True
         self.track_hint = ""
         self.last_track_match: dict | None = None
+        self.last_ta_match: dict | None = None
         self.detector = LapDetector()
         self.session_laps: list[SessionLap] = []
         self._next_id = 1
@@ -95,6 +97,7 @@ class CollectorState:
             "gap_durations_s": [g.duration_s for g in lap.gaps],
             "path_points": len(lap.path),
             "label": item.label,
+            "mode": item.mode,
             "track": item.track or self.track,
             "uploaded": item.uploaded,
             "cloud_uploaded": item.cloud_uploaded,
@@ -148,6 +151,7 @@ class CollectorState:
                 "auto_track_detect": self.auto_track_detect,
                 "track_hint": self.track_hint,
                 "last_track_match": self.last_track_match,
+                "last_ta_match": self.last_ta_match,
             }
 
     def handle_packet(self, data: bytes) -> None:
@@ -194,6 +198,27 @@ class CollectorState:
                     except Exception as exc:  # noqa: BLE001
                         self.last_track_match = {"matched": False, "error": str(exc)}
                         print(f"Track auto-detect error: {exc!r}")
+                    try:
+                        ta = match_time_attack_start(completed.path)
+                        self.last_ta_match = ta
+                        if ta.get("matched"):
+                            item.mode = "time_attack"
+                            if item.label in {"unknown", "clean"}:
+                                item.label = "time_attack"
+                            print(
+                                f"Time Attack start MATCH "
+                                f"(dist={ta.get('distance_m')}m "
+                                f"cov={ta.get('coverage')})"
+                            )
+                        else:
+                            print(
+                                f"Time Attack start miss "
+                                f"(dist={ta.get('distance_m')}m "
+                                f"cov={ta.get('coverage')})"
+                            )
+                    except Exception as exc:  # noqa: BLE001
+                        self.last_ta_match = {"matched": False, "error": str(exc)}
+                        print(f"Time Attack detect error: {exc!r}")
                 if (
                     self.auto_cloud_upload
                     and self.cloud.cfg.claimed
@@ -430,6 +455,7 @@ class CollectorState:
             "integrity": integrity,
             "stream_gaps": lap.stream_gaps,
             "client_lap_id": client_lap_id,
+            "mode": item.mode or None,
         }
         try:
             result = client.upload_lap(payload)

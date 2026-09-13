@@ -11,6 +11,7 @@ from .paths import project_root
 
 ROOT = project_root()
 FINGERPRINT = ROOT / "data" / "fingerprints" / "albert-park.json"
+TA_START_FINGERPRINT = ROOT / "data" / "fingerprints" / "albert-park-time-attack-start.json"
 CAPTURE_DIR = project_root() / "collector" / "captures" / "albert-park"
 
 # Live laps can be slightly short of full-reference coverage; keep verify script strict.
@@ -18,6 +19,7 @@ LIVE_COVERAGE_THRESHOLD = 0.45
 LIVE_MATCH_THRESHOLD_M = 10.0
 
 _fingerprint_cache: dict | None = None
+_ta_start_cache: dict | None = None
 
 
 def load_fingerprint() -> dict:
@@ -27,9 +29,42 @@ def load_fingerprint() -> dict:
     return _fingerprint_cache
 
 
+def load_ta_start_fingerprint() -> dict:
+    global _ta_start_cache
+    if _ta_start_cache is None:
+        if not TA_START_FINGERPRINT.is_file():
+            raise FileNotFoundError(f"Missing TA start fingerprint: {TA_START_FINGERPRINT}")
+        _ta_start_cache = json.loads(TA_START_FINGERPRINT.read_text(encoding="utf-8"))
+    return _ta_start_cache
+
+
 def clear_fingerprint_cache() -> None:
-    global _fingerprint_cache
+    global _fingerprint_cache, _ta_start_cache
     _fingerprint_cache = None
+    _ta_start_cache = None
+
+
+def _as_points(path: list[dict] | tuple) -> list[dict]:
+    points: list[dict] = []
+    for p in path:
+        if isinstance(p, dict):
+            points.append({"x": float(p["x"]), "z": float(p["z"])})
+        else:
+            points.append({"x": float(p.x), "z": float(p.z)})
+    return points
+
+
+def start_segment(path: list[dict], meters: float) -> list[dict]:
+    if not path:
+        return []
+    out = [path[0]]
+    traveled = 0.0
+    for a, b in zip(path, path[1:]):
+        traveled += math.hypot(b["x"] - a["x"], b["z"] - a["z"])
+        out.append(b)
+        if traveled >= meters:
+            break
+    return out
 
 
 def downsample(path: list[dict], step_m: float = 8.0) -> list[dict]:
@@ -105,12 +140,7 @@ def match_path(
 ) -> dict:
     """Score a live lap path against the Albert Park fingerprint."""
     fingerprint = fingerprint or load_fingerprint()
-    points: list[dict] = []
-    for p in path:
-        if isinstance(p, dict):
-            points.append({"x": float(p["x"]), "z": float(p["z"])})
-        else:
-            points.append({"x": float(p.x), "z": float(p.z)})
+    points = _as_points(path)
     ref = fingerprint["points"]
     query = downsample(points, step_m=float(fingerprint.get("step_m", 8)))
     dist = mean_nearest(query, ref)
@@ -128,6 +158,44 @@ def match_path(
         "distance_m": round(dist, 3) if dist != float("inf") else None,
         "coverage": round(cov, 3),
         "path_points": len(points),
+        "query_points": len(query),
+    }
+
+
+def match_time_attack_start(
+    path: list[dict] | tuple,
+    fingerprint: dict | None = None,
+) -> dict:
+    """Detect Albert Park Time Attack via offset-start fingerprint."""
+    try:
+        fingerprint = fingerprint or load_ta_start_fingerprint()
+    except FileNotFoundError as exc:
+        return {
+            "matched": False,
+            "mode": None,
+            "track": "Albert Park",
+            "error": str(exc),
+        }
+    points = _as_points(path)
+    meters = float(fingerprint.get("start_meters", 180))
+    step = float(fingerprint.get("step_m", 4))
+    head = start_segment(points, meters)
+    query = downsample(head, step_m=step)
+    ref = fingerprint["points"]
+    # Short start refs use a slightly wider coverage radius.
+    dist = mean_nearest(query, ref)
+    cov = coverage(query, ref, radius_m=25.0)
+    dist_ok = dist <= float(fingerprint.get("match_threshold_m", 20))
+    cov_ok = cov >= float(fingerprint.get("coverage_threshold", 0.55))
+    matched = bool(query) and dist_ok and cov_ok
+    return {
+        "matched": matched,
+        "mode": "time_attack" if matched else None,
+        "track": fingerprint.get("track", "Albert Park"),
+        "distance_m": round(dist, 3) if dist != float("inf") else None,
+        "coverage": round(cov, 3),
+        "path_points": len(points),
+        "start_points": len(head),
         "query_points": len(query),
     }
 
