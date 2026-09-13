@@ -20,16 +20,23 @@ OPEN DEBT: TA fingerprints/codes not built yet; Microsoft OAuth deferred (docs/M
 
 ## LAST COMPLETED
 
-- Public site theme: dark fantasy / doom metal (CD-approved mockup)
-- Shared hero banner (top-cropped), nav Track Codes | Time Attack, metallic title arts
-- Time Attack How To Use teaser with Coming soon under title
-- Private `board-lab.html` shares shell
+- Public doom-metal theme live
+- Local test bats + Time Attack capture label
+- Albert Park **TA offset-start fingerprint** + collector auto-detect (`mode=time_attack`)
 
 ## NEXT
 
-1. **CD:** TA EventLab events (offset start, ~50 laps, one code/track); optional higher-res banner  
-2. Lead: fingerprint TA → unveil Live Timing + Leaderboards  
-3. List TA codes under Track Codes as variant; player profiles later
+1. Server: persist `mode` on uploads; filter public boards to TA-only  
+2. CD playtest: restart TA event → confirm Mode column says Time Attack  
+3. Unveil Live Timing / Leaderboards when ready  
+4. Optional: higher-res banner
+
+## OPEN DEBT
+
+- Server `mode` column not built yet (collector already sends `mode` in upload payload)
+- Microsoft OAuth deferred
+- Default session end = midnight AEST unless CD overrides
+- Banner ~1024px (upgrade when CD supplies)
 
 ## Commands
 
