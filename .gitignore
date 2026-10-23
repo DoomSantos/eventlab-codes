@@ -7,11 +7,7 @@ Thumbs.db
 collector/laps.db
 collector/device.json
 collector/captures/
-!collector/captures/albert-park/
-!collector/captures/brands-hatch-circuit/
-!collector/captures/brands-hatch-circuit/.gitkeep
-!collector/captures/brands-hatch-indy-circuit/
-!collector/captures/brands-hatch-indy-circuit/.gitkeep
+collector/_tmp_*.py
 server/timing.db
 dist/
 build/
@@ -27,5 +23,27 @@ server/.invites.txt
 server/.invites-test.txt
 data/time-attack-codes.json
 
-# Local theme exploration (optional)
-# mockups/ kept in repo for CD review
+# Internal — kept on this machine, not published
+AGENTS.md
+.cursorrules
+PROJECT_ROADMAP.md
+docs/
+mockups/
+assets/
+board-lab.html
+board-live.js
+collector/CAPTURE.md
+collector/analyze_captures.py
+collector/build_fingerprint.py
+collector/build_ta_start_fingerprint.py
+collector/build_track_fingerprint.py
+mint-invite.bat
+mint-invite-test.bat
+reissue-invite.bat
+list-players.bat
+start-test-collector.bat
+start-test-server.bat
+scripts/compare_ta_starts.py
+scripts/crop_brand_titles.py
+scripts/prepare_brand_assets.py
+brand/instagram-time-attack-coming-soon.png
