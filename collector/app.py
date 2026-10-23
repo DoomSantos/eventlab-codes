@@ -33,7 +33,7 @@ from .lap_detect import CompletedLap, LapDetector
 from .packet import PACKET_SIZE, format_lap_time, parse_packet
 from .store import LapStore
 from .tracks import load_track_names
-from .verify import match_path
+from .verify import match_path, match_time_attack_start, resolve_ta_session_mode
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -48,6 +48,7 @@ class SessionLap:
     cloud_uploaded: bool = False
     cloud_error: str | None = None
     label: str = "unknown"
+    mode: str = ""
     capture_saved: bool = False
     capture_path: str | None = None
 
@@ -64,11 +65,19 @@ class CollectorState:
         self.auto_track_detect = True
         self.track_hint = ""
         self.last_track_match: dict | None = None
+        self.last_ta_match: dict | None = None
+        self.ta_session_active = False
+        self.ta_session_track = ""
+        self._last_live_ta_check = 0.0
+        self._presence_published = False
+        self._presence_due = False
+        self._last_seen_lap_number: int | None = None
         self.detector = LapDetector()
         self.session_laps: list[SessionLap] = []
         self._next_id = 1
         self.live = None
         self.packets_per_sec = 0
+        self.udp_port = 9876
         self._packet_count = 0
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -90,11 +99,16 @@ class CollectorState:
             "lap_number": lap.lap_number,
             "stream_gaps": lap.stream_gaps,
             "suspect_rewind": lap.suspect_rewind,
-            "integrity": classify_integrity(lap.gaps).title(),
+            "integrity": classify_integrity(
+                lap.gaps,
+                lap_time_s=lap.lap_time_s,
+                force_rewound=lap.force_rewound,
+            ).title(),
             "gap_jumps_m": [g.jump_m for g in lap.gaps],
             "gap_durations_s": [g.duration_s for g in lap.gaps],
             "path_points": len(lap.path),
             "label": item.label,
+            "mode": item.mode,
             "track": item.track or self.track,
             "uploaded": item.uploaded,
             "cloud_uploaded": item.cloud_uploaded,
@@ -134,6 +148,7 @@ class CollectorState:
                 "saved": saved,
                 "live": live,
                 "packets_per_sec": self.packets_per_sec,
+                "udp_port": self.udp_port,
                 "capture_counts": capture_counts(self.track),
                 "labels": list(VALID_LABELS),
                 "cloud": {
@@ -148,6 +163,9 @@ class CollectorState:
                 "auto_track_detect": self.auto_track_detect,
                 "track_hint": self.track_hint,
                 "last_track_match": self.last_track_match,
+                "last_ta_match": self.last_ta_match,
+                "ta_session_active": self.ta_session_active,
+                "ta_session_track": self.ta_session_track,
             }
 
     def handle_packet(self, data: bytes) -> None:
@@ -157,7 +175,29 @@ class CollectorState:
         with self._lock:
             self._packet_count += 1
             self.live = tel
+            # Lap counter drop = quit/restart/new EventLab. Sticky TA must not carry over.
+            if (
+                self._last_seen_lap_number is not None
+                and tel.lap_number < self._last_seen_lap_number
+                and self.ta_session_active
+            ):
+                self.ta_session_active = False
+                self.ta_session_track = ""
+                self.last_ta_match = {
+                    "matched": False,
+                    "mode": None,
+                    "session_active": False,
+                    "cleared": "lap_counter_reset",
+                }
+                print(
+                    "Time Attack session cleared "
+                    f"(lap counter {self._last_seen_lap_number} → {tel.lap_number})"
+                )
+                self._presence_due = True
+            self._last_seen_lap_number = tel.lap_number
             completed = self.detector.feed(tel)
+            if not completed:
+                self._maybe_arm_ta_live()
             if completed:
                 item = SessionLap(
                     id=self._next_id,
@@ -174,7 +214,7 @@ class CollectorState:
                         if hint.get("matched"):
                             name = str(hint["track"])
                             self.track_hint = name
-                            if name in self.tracks:
+                            if name in self.tracks and not self.ta_session_track:
                                 self.track = name
                                 item.track = name
                             print(
@@ -194,12 +234,87 @@ class CollectorState:
                     except Exception as exc:  # noqa: BLE001
                         self.last_track_match = {"matched": False, "error": str(exc)}
                         print(f"Track auto-detect error: {exc!r}")
+                    try:
+                        ta = match_time_attack_start(completed.path)
+                        mode, self.ta_session_active = resolve_ta_session_mode(
+                            matched=bool(ta.get("matched")),
+                            lap_number=completed.lap_number,
+                            session_active=self.ta_session_active,
+                        )
+                        ta = {
+                            **ta,
+                            "session_active": self.ta_session_active,
+                            "mode": mode or None,
+                        }
+                        self.last_ta_match = ta
+                        item.mode = mode
+                        if mode == "time_attack":
+                            self._presence_due = True
+                        if mode == "time_attack" and item.label in {"unknown", "clean"}:
+                            item.label = "time_attack"
+                        # Offset-start match locks the layout for the session.
+                        # Laps 2+ restart at the normal line; shared-pit layouts
+                        # (Monza GP vs Junior) must not be re-ID'd from that.
+                        # Lap 1 is authoritative — live-arm from a short path
+                        # must not keep a wrong shared-pit guess.
+                        ta_track = ta.get("track")
+                        if (
+                            ta.get("matched")
+                            and ta_track
+                            and ta_track in self.tracks
+                            and (
+                                completed.lap_number <= 1
+                                or not self.ta_session_track
+                            )
+                        ):
+                            self.ta_session_track = str(ta_track)
+                        if mode == "time_attack" and self.ta_session_track:
+                            self.track = self.ta_session_track
+                            self.track_hint = self.ta_session_track
+                            item.track = self.ta_session_track
+                        if ta.get("matched") and completed.lap_number <= 1:
+                            print(
+                                f"Time Attack start MATCH [{ta.get('track')}"
+                                f"/{ta.get('variant')}] "
+                                f"(dist={ta.get('distance_m')}m "
+                                f"cov={ta.get('coverage')}) — session armed"
+                            )
+                        elif mode == "time_attack":
+                            print(
+                                f"Time Attack session continues "
+                                f"(lap {completed.lap_number}; start not re-checked)"
+                            )
+                        else:
+                            print(
+                                f"Time Attack start miss "
+                                f"(best {ta.get('track')}: "
+                                f"dist={ta.get('distance_m')}m "
+                                f"cov={ta.get('coverage')})"
+                            )
+                    except Exception as exc:  # noqa: BLE001
+                        self.last_ta_match = {"matched": False, "error": str(exc)}
+                        print(f"Time Attack detect error: {exc!r}")
+                integrity = classify_integrity(
+                    completed.gaps,
+                    lap_time_s=completed.lap_time_s,
+                    force_rewound=completed.force_rewound,
+                )
                 if (
                     self.auto_cloud_upload
                     and self.cloud.cfg.claimed
-                    and classify_integrity(completed.gaps) == "clean"
+                    and item.mode == "time_attack"
+                    and integrity == "clean"
                 ):
                     self._cloud_queue.append(item.id)
+                elif (
+                    self.auto_cloud_upload
+                    and self.cloud.cfg.claimed
+                    and integrity == "clean"
+                    and item.mode != "time_attack"
+                ):
+                    self.cloud_last_ok = (
+                        "Clean lap kept local — not a Time Attack event"
+                    )
 
     def tick_rates(self) -> None:
         with self._lock:
@@ -242,7 +357,11 @@ class CollectorState:
             improved = 0
             for item in chosen:
                 lap = item.completed
-                integrity = classify_integrity(lap.gaps)
+                integrity = classify_integrity(
+                    lap.gaps,
+                    lap_time_s=lap.lap_time_s,
+                    force_rewound=lap.force_rewound,
+                )
                 _record, did_improve = self.store.upsert_best(
                     track=self.track,
                     player_name=self.player_name,
@@ -318,7 +437,7 @@ class CollectorState:
                     return {
                         "ok": False,
                         "error": f"Set a label on lap {item.id} before saving capture "
-                        "(clean / paused / rewound)",
+                        "(clean / paused / rewound / Time Attack)",
                     }
                 payload = capture_payload(
                     lap=item.completed,
@@ -376,9 +495,27 @@ class CollectorState:
         try:
             cfg = self.cloud.claim(invite_code=invite_code.strip(), display_name=name)
         except RuntimeError as exc:
+            raw = str(exc)
+            lowered = raw.lower()
+            if "already taken" in lowered:
+                message = (
+                    "That display name is already on the board. "
+                    "If this is a new PC, ask DSR for a replacement invite for that name."
+                )
+            elif "already used" in lowered:
+                message = "That invite was already used. Ask DSR for a new one."
+            elif "invalid invite" in lowered:
+                message = "That invite isn't valid. Check you copied the whole code."
+            elif "use your existing display name" in lowered:
+                message = (
+                    "This is a replacement invite — type the same display name "
+                    "you already use on the board."
+                )
+            else:
+                message = raw
             with self._lock:
-                self.cloud_last_error = str(exc)
-            return {"ok": False, "error": str(exc)}
+                self.cloud_last_error = message
+            return {"ok": False, "error": message}
         with self._lock:
             self.player_name = cfg.display_name
             self.cloud_last_error = ""
@@ -419,7 +556,11 @@ class CollectorState:
             return
 
         lap = item.completed
-        integrity = classify_integrity(lap.gaps)
+        integrity = classify_integrity(
+            lap.gaps,
+            lap_time_s=lap.lap_time_s,
+            force_rewound=lap.force_rewound,
+        )
         client_lap_id = item.client_lap_id or f"session-{lap_id}-{uuid.uuid4()}"
         payload = {
             "track": track,
@@ -430,6 +571,7 @@ class CollectorState:
             "integrity": integrity,
             "stream_gaps": lap.stream_gaps,
             "client_lap_id": client_lap_id,
+            "mode": item.mode or None,
         }
         try:
             result = client.upload_lap(payload)
@@ -451,18 +593,64 @@ class CollectorState:
                     self._cloud_queue.pop(0)
                     self._cloud_queue.append(lap_id)
 
+    def _maybe_arm_ta_live(self) -> None:
+        """Arm Time Attack from the in-progress lap so Who's Racing is not late."""
+        if self.ta_session_active or not self.auto_track_detect:
+            return
+        now = time.monotonic()
+        if now - self._last_live_ta_check < 1.0:
+            return
+        path = self.detector.current_path
+        if len(path) < 15:
+            return
+        self._last_live_ta_check = now
+        try:
+            ta = match_time_attack_start(path)
+        except Exception as exc:  # noqa: BLE001
+            self.last_ta_match = {"matched": False, "error": str(exc)}
+            print(f"Time Attack live detect error: {exc!r}")
+            return
+        if not ta.get("matched"):
+            return
+        self.ta_session_active = True
+        self.last_ta_match = {
+            **ta,
+            "session_active": True,
+            "mode": "time_attack",
+            "live": True,
+        }
+        ta_track = ta.get("track")
+        if ta_track and ta_track in self.tracks and not self.ta_session_track:
+            self.ta_session_track = str(ta_track)
+            self.track = str(ta_track)
+            self.track_hint = str(ta_track)
+        print(
+            f"Time Attack live start MATCH [{ta.get('track')}"
+            f"/{ta.get('variant')}] — session armed"
+        )
+        self._presence_due = True
+
     def send_presence(self) -> None:
         with self._lock:
-            if not self.cloud.cfg.claimed or not self.live:
+            if not self.cloud.cfg.claimed:
                 return
-            if self.packets_per_sec <= 0 and not self.live.is_race_on:
+            in_ta = bool(
+                self.ta_session_active
+                and self.live is not None
+                and (self.live.is_race_on or self.packets_per_sec > 0)
+            )
+            if not in_ta and not self._presence_published:
                 return
             payload = {
                 "track": self.track,
-                "class_pi": self.live.class_pi_label,
-                "car": car_label(self.live.car_ordinal, self.car_names),
-                "racing": bool(self.live.is_race_on),
+                "class_pi": self.live.class_pi_label if self.live else "",
+                "car": (
+                    car_label(self.live.car_ordinal, self.car_names) if self.live else ""
+                ),
+                "racing": in_ta,
+                "mode": "time_attack" if in_ta else "",
             }
+            self._presence_published = in_ta
             client = self.cloud
         try:
             client.presence(payload)
@@ -500,6 +688,9 @@ def make_handler(state: CollectorState):
                     return
                 if path in ("/", "/index.html"):
                     self._file(STATIC_DIR / "index.html", "text/html; charset=utf-8")
+                    return
+                if path == "/dsr-select.js":
+                    self._file(STATIC_DIR / "dsr-select.js", "text/javascript; charset=utf-8")
                     return
                 self._json(404, {"error": "Not found"})
             except Exception as exc:  # noqa: BLE001
@@ -557,6 +748,7 @@ def make_handler(state: CollectorState):
                     return
                 if path == "/api/session/clear":
                     result = state.clear_session()
+                    print(f"Session list CLEARED ({result.get('removed')} lap(s)) via UI/API")
                     self._json(200, result)
                     return
                 if path == "/api/session/labels":
@@ -635,7 +827,11 @@ def cloud_loop(state: CollectorState) -> None:
         time.sleep(1)
         ticks += 1
         state.flush_cloud_queue()
-        if ticks % 10 == 0:
+        due = False
+        with state._lock:
+            due = state._presence_due or ticks % 10 == 0
+            state._presence_due = False
+        if due:
             state.send_presence()
 
 
@@ -660,6 +856,7 @@ def main(argv: list[str] | None = None) -> int:
     tracks = load_track_names()
     store = LapStore()
     state = CollectorState(store, tracks)
+    state.udp_port = int(args.port)
     if args.api_url:
         state.set_cloud_settings(api_base=args.api_url)
 

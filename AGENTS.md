@@ -43,6 +43,7 @@ Data-driven where content can change. Do not invent missing product rules — lo
 ## Commands
 
 - Check / tests: `python -m unittest discover -s collector -p "test_*.py" -v` and `python -m unittest discover -s server -p "test_*.py" -v`
+- Local test (CD): `start-test-server.bat` then `start-test-collector.bat` (UI http://127.0.0.1:8765; captures → `collector/captures/`)
 - Collector: `python -m collector --port 9876 --web-port 8765`
 - Timing API (local): `python -m server --port 8787`
 - Site preview: `python -m http.server 8080`

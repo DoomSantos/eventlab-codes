@@ -8,6 +8,10 @@ collector/laps.db
 collector/device.json
 collector/captures/
 !collector/captures/albert-park/
+!collector/captures/brands-hatch-circuit/
+!collector/captures/brands-hatch-circuit/.gitkeep
+!collector/captures/brands-hatch-indy-circuit/
+!collector/captures/brands-hatch-indy-circuit/.gitkeep
 server/timing.db
 dist/
 build/
@@ -20,3 +24,8 @@ server/__pycache__/
 collector/.device_token
 server/.admin_token
 server/.invites.txt
+server/.invites-test.txt
+data/time-attack-codes.json
+
+# Local theme exploration (optional)
+# mockups/ kept in repo for CD review

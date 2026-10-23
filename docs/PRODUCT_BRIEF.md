@@ -44,7 +44,7 @@ Full Time Attack IA + mockup decisions: **`docs/TIME_ATTACK.md`**.
 | Abuse | Rate limits + invite one-time claim + time sanity bounds | See API section |
 | Hosting | Local `python -m server`; deploy via Dockerfile — see `docs/DEPLOY.md` | Default target: Railway + volume for SQLite |
 | CORS | Local `*`; production lock via `TIMING_CORS_ORIGINS` | Must include GitHub Pages origin |
-| Track detect | Albert Park fingerprint auto-sets track after a matched lap | Other tracks still manual |
+| Track detect | TA offset-start fingerprints auto-set track + Mode Time Attack | Full-lap fingerprints also exist for some tracks (Albert Park, Top Gear, …) |
 | Auth header | `Authorization: Bearer <device_token>` | |
 
 ## User journeys
@@ -74,7 +74,8 @@ Full Time Attack IA + mockup decisions: **`docs/TIME_ATTACK.md`**.
 |--------|------|------|---------|
 | POST | `/v1/claim` | invite code | Create device + display name → token |
 | POST | `/v1/laps` | Bearer | Upload one completed lap |
-| GET | `/v1/board` | public | Rolling 24h Clean times (filter track / class_pi) |
+| GET | `/v1/board` | public | Clean TA times (`window=today\|24h\|7d\|…`, default 24h); Live Timing uses `today` |
+| GET | `/v1/leaderboard` | public | 1 best Clean TA lap per player × track × class (`window=all` default; `class` letter filter) |
 | POST | `/v1/presence` | Bearer | Heartbeat: track, class_pi, car, racing bool |
 | GET | `/v1/live` | public | Active racers (recent heartbeats) |
 | GET | `/v1/history?player=` | public | That player’s recent uploads |
@@ -96,8 +97,29 @@ Full Time Attack IA + mockup decisions: **`docs/TIME_ATTACK.md`**.
 
 ## Explicit debt / open CD questions
 
-1. **Invite UX** — how CD distributes codes (Discord DM, etc.) — process, not code.
+1. **Invite distribution (locked process for launch)** — see below. No auto-mint bot yet.
 2. **Open registration later?** — not built until CD asks.
 3. **Best-ever vs 24h-only** — v1 is 24h public board; all-time best can return later.
 4. **Paused laps** — stored, not ranked (same as rewound for public board).
-5. **Production host** — pick when local API is proven (Fly/Railway/CF Workers, etc.).
+5. **Production host** — Railway live; keep CORS/env healthy.
+
+### Invite plan (CD — 2026-09-15)
+
+**Launch wave**
+
+1. Instagram reel: **pre-signup** — interested drivers DM DoomSantos Racing.
+2. CD keeps a simple list of who messaged (handle / note).
+3. On unveil / launch day: mint invites in a batch (`mint-invite.bat` / admin API) and DM codes out **all at once**.
+4. After launch: watch ongoing demand; keep manual mint+DM unless volume hurts.
+
+**Rules of thumb**
+
+- One-time invite → device token on that PC.
+- New PC / wiped collector: CD runs `reissue-invite.bat` with their existing display name, then they claim that replacement invite with the **same** name. Times stay on that name; the old PC’s token dies.
+- Do not post live invite codes on the public site or public comments.
+- Boards stay public to **view**; submit still invite + collector.
+
+**Deferred (not building now)**
+
+- Instagram Messaging API / Ice Breaker auto-DM that mints a code (Meta app + App Review + Railway webhook). Revisit only if post-launch DM volume is painful.
+- ManyChat / similar SaaS as a middle path if CD wants automation without a custom Meta app.
