@@ -82,6 +82,56 @@
       ]
     },
     {
+      "name": "Brands Hatch Circuit",
+      "variants": [
+        {
+          "label": "With Drivatars",
+          "icon": "robot",
+          "events": [
+            { "laps": 5, "code": "554571525" },
+            { "laps": 15, "code": "595727625" },
+            { "laps": 25, "code": "135007505" },
+            { "laps": 50, "code": "166729940" }
+          ]
+        },
+        {
+          "label": "Without Drivatars",
+          "icon": "driver",
+          "events": [
+            { "laps": 5, "code": "459377665" },
+            { "laps": 15, "code": "120638376" },
+            { "laps": 25, "code": "512024202" },
+            { "laps": 50, "code": "126241699" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Brands Hatch Indy Circuit",
+      "variants": [
+        {
+          "label": "With Drivatars",
+          "icon": "robot",
+          "events": [
+            { "laps": 5, "code": "106293348" },
+            { "laps": 15, "code": "133940789" },
+            { "laps": 25, "code": "130466579" },
+            { "laps": 50, "code": "350855289" }
+          ]
+        },
+        {
+          "label": "Without Drivatars",
+          "icon": "driver",
+          "events": [
+            { "laps": 5, "code": "124709335" },
+            { "laps": 15, "code": "696767576" },
+            { "laps": 25, "code": "737855240" },
+            { "laps": 50, "code": "125945662" }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Circuit de Monaco",
       "variants": [
         {
