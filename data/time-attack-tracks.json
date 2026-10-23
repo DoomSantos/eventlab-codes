@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "note": "Time Attack track names for Live Timing / Leaderboards. No share codes — those stay in time-attack-codes.json until CD unveil.",
+  "tracks": [
+    "Albert Park",
+    "Autodromo Nazionale Monza",
+    "Autodromo Nazionale Monza Junior Course",
+    "Circuit de Monaco",
+    "Top Gear Test Track",
+    "Brands Hatch Circuit",
+    "Brands Hatch Indy Circuit"
+  ]
+}
