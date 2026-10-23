@@ -67,24 +67,27 @@ async function loadConfig() {
 async function loadTracks() {
   const names = [];
   try {
-    const res = await fetch("data/tracks.json", { cache: "no-store" });
+    const res = await fetch("data/time-attack-tracks.json", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      names.push(...(data.tracks || []).map((t) => t.name).filter(Boolean));
+      for (const item of data.tracks || []) {
+        const name = typeof item === "string" ? item : item && item.name;
+        if (name) names.push(String(name));
+      }
     }
   } catch {
     /* ignore */
   }
-  try {
-    const res = await fetch("data/time-attack-codes.json", { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      for (const event of data.events || []) {
-        if (event.track) names.push(String(event.track));
+  if (!names.length) {
+    try {
+      const res = await fetch("data/tracks.json", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        names.push(...(data.tracks || []).map((t) => t.name).filter(Boolean));
       }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore — file may be unpublished locally */
   }
   tracksCatalog = uniqueSorted(names);
 }
