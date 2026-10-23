@@ -46,7 +46,20 @@ Until unveil: **How To Use teaser** under Time Attack — basic “how it will w
 ## Engineering notes (not blocking unveil teaser)
 
 - Persist `mode=time_attack` (or event id) on uploads once fingerprints exist; reject/ignore non-TA for public boards.
-- **Albert Park TA start fingerprint shipped** (`data/fingerprints/albert-park-time-attack-start.json`); collector auto-detects offset start and sets `mode=time_attack` + research label. Server still needs a `mode` column before boards can filter to TA-only.
+- **Who's Racing** is Time Attack only. Collector presence includes `mode`; `/v1/live` ignores open-world / other EventLab heartbeats (`is_race_on` is not enough). Session can arm from the live start path before lap 1 finishes.
+- Auto-upload to the public board is Clean **Time Attack** laps only. Casual EventLab and open-world laps stay local.
+- **Albert Park TA start fingerprint shipped** (`data/fingerprints/albert-park-time-attack-start.json`); collector auto-detects offset start and sets `mode=time_attack`.
+- **Sticky TA session:** offset-start match arms the session; laps 2+ inherit `time_attack` (they restart at the normal line). Session clears when the lap counter drops (quit/restart/new event) or when a new lap 1 does **not** match the offset start. Only a fresh offset-start match re-arms — so “TA start lap → swap to another EventLab” does not keep counting.
+- **Sticky layout:** the offset-start also locks the track name for the rest of the session. Laps 2+ of full Monza start at the normal line; the first 800 m looks like Junior Course, so re-ID would flip them. Same risk on Brands Hatch GP vs Indy.
+- **Festival load:** open-world path + EventLab teleport onto the pit grid is still Time Attack. Matcher scores a new start window after **500 m+** jumps (Albert Park paddock→pits can be ~1300 m, below the integrity 1500 m ignore). The detector also drops the festival path when that teleport happens with the lap timer still near 0.
+- **Monza TA start:** multi-slot variants (front/rear pit grid) in `autodromo-nazionale-monza-time-attack-start.json`. Matcher tries all track TA fingerprints; a match also sets the track name.
+- **Monza Junior Course:** shares the pit exit with full Monza — short start matches both; an **800 m layout window** picks the correct track. Fingerprint: `autodromo-nazionale-monza-junior-course-time-attack-start.json`.
+- **Monaco:** `circuit-de-monaco-time-attack-start.json` (multi-slot pit variants).
+- **Top Gear Test Track:** TA start + full-lap fingerprint with **soft corridors** on the two airport-runway straights (~1.0–1.1 km and ~2.3–2.7 km). Wider training lines widen local match radius there only; tight sections stay strict.
+- **Brands Hatch:** Indy and GP share the pit and the first ~1.4 km. TA start fingerprints use a **2 km layout window** (not Monza’s 800 m). `brands-hatch-indy-circuit-time-attack-start.json` (2 pit slots) and `brands-hatch-circuit-time-attack-start.json`. CD playtest 2026-10-23: both layouts auto-ID correctly.
+- **Server persists `mode`** on `/v1/laps`; public `/v1/board` defaults to `mode=time_attack` only (`on_board` requires clean + time_attack).
+- **Windows:** `/v1/board?window=` supports `today` (AEST midnight) / `24h` / `7d` / `30d` / `365d` / `all`; response includes `session` (AEST day + `ends_at`).
+- **Leaderboards API:** `GET /v1/leaderboard` — 1 best Clean TA lap per player × track × class; `?class=R` letter filter; default `window=all`.
 - Day bucket = AEST calendar date of `submitted_at`.
 - Leaderboard class filter matches `class_name` only; display still `class_name + PI`.
 - Profile pages use existing `/v1/history` (extend as needed).
@@ -57,4 +70,6 @@ Until unveil: **How To Use teaser** under Time Attack — basic “how it will w
 
 1. Exact AEST session end clock (default **midnight AEST** unless CD picks another hour).  
 2. When first TA share codes + fingerprints are ready, unveil replaces teaser.  
+   **Codes staged (not public):** see `data/time-attack-codes.json` (`published: false`).  
+   Albert Park `129783632` · Monza `483419555` · Monza Junior `163986603` · Monaco `173579476` · Top Gear `156519500` · Brands Hatch Circuit `108005006` · Brands Hatch Indy `134791801`.
 3. Profile URL shape (`/player/Name` vs query) — decide at build time.

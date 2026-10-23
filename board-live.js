@@ -232,6 +232,7 @@ async function refresh() {
     const params = new URLSearchParams();
     if (trackFilter.value) params.set("track", trackFilter.value);
     params.set("limit", "500");
+    params.set("window", "24h");
     const qs = params.toString() ? `?${params}` : "";
     const [boardRes, liveRes] = await Promise.all([
       fetch(`${apiBase}/v1/board${qs}`, { cache: "no-store" }),

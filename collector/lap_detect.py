@@ -6,6 +6,8 @@ import math
 import time
 from dataclasses import dataclass
 
+from .integrity import is_rewindish_gap
+from .verify import TA_SPAWN_JUMP_M
 from .packet import Telemetry
 
 MIN_LAP_S = 20.0
@@ -13,6 +15,9 @@ MAX_LAP_S = 30 * 60.0
 STREAM_GAP_S = 0.45
 PATH_MIN_INTERVAL_S = 0.2
 PATH_MIN_DISTANCE_M = 2.0
+# Event restart / new attempt: lap timer drops back near zero without a lap tick.
+LAP_TIMER_RESET_FROM_S = 5.0
+LAP_TIMER_RESET_TO_S = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +52,7 @@ class CompletedLap:
     lap_number: int
     stream_gaps: int = 0
     suspect_rewind: bool = False
+    force_rewound: bool = False
     path: tuple[PathSample, ...] = ()
     gaps: tuple[GapEvent, ...] = ()
 
@@ -69,6 +75,12 @@ class LapDetector:
         self._last_path_z: float | None = None
         self._pending_gap_start: float | None = None
         self._pending_gap_before: Telemetry | None = None
+        self._last_current_lap: float | None = None
+        self._force_rewound = False
+
+    @property
+    def current_path(self) -> tuple[PathSample, ...]:
+        return tuple(self._path_this_lap)
 
     def reset(self) -> None:
         self._last_lap_number = None
@@ -83,6 +95,8 @@ class LapDetector:
         self._last_path_z = None
         self._pending_gap_start = None
         self._pending_gap_before = None
+        self._last_current_lap = None
+        self._force_rewound = False
 
     def _begin_lap_segment(self, tel: Telemetry, now: float) -> None:
         self._gaps_this_lap = []
@@ -93,7 +107,21 @@ class LapDetector:
         self._last_path_z = None
         self._pending_gap_start = None
         self._pending_gap_before = None
+        self._force_rewound = False
+        self._last_current_lap = tel.current_lap
         self._maybe_sample_path(tel, now, force=True)
+
+    def _maybe_reset_for_new_attempt(self, tel: Telemetry, now: float) -> None:
+        """Drop menu/load noise when the lap timer restarts without a lap tick."""
+        prev = self._last_current_lap
+        if prev is None:
+            return
+        if prev < LAP_TIMER_RESET_FROM_S or tel.current_lap >= LAP_TIMER_RESET_TO_S:
+            return
+        carry_rewound = any(is_rewindish_gap(g) for g in self._gaps_this_lap)
+        self._begin_lap_segment(tel, now)
+        if carry_rewound:
+            self._force_rewound = True
 
     def _maybe_sample_path(self, tel: Telemetry, now: float, *, force: bool = False) -> None:
         if self._lap_started_at is None:
@@ -144,6 +172,10 @@ class LapDetector:
         )
         self._pending_gap_start = None
         self._pending_gap_before = None
+        # EventLab load teleports onto the TA grid while the timer is still ~0.
+        # Drop the festival path so offset-start matching sees the pit, not open world.
+        if jump >= TA_SPAWN_JUMP_M and tel.current_lap < LAP_TIMER_RESET_FROM_S:
+            self._begin_lap_segment(tel, now)
 
     def feed(self, tel: Telemetry) -> CompletedLap | None:
         now = time.monotonic()
@@ -167,6 +199,22 @@ class LapDetector:
         if self._pending_gap_start is not None:
             self._close_pending_gap(tel, now)
 
+        if (
+            self._last_tel is not None
+            and tel.current_lap < LAP_TIMER_RESET_FROM_S
+            and _xz_distance(
+                self._last_tel.position_x,
+                self._last_tel.position_z,
+                tel.position_x,
+                tel.position_z,
+            )
+            >= TA_SPAWN_JUMP_M
+        ):
+            self._last_packet_at = now
+            self._last_tel = tel
+            self._begin_lap_segment(tel, now)
+            return None
+
         self._last_packet_at = now
         self._last_tel = tel
 
@@ -176,14 +224,16 @@ class LapDetector:
             self._begin_lap_segment(tel, now)
             return None
 
-        self._maybe_sample_path(tel, now)
-
+        # Finish line: lap number ticks and current_lap drops to ~0 on the same
+        # packet. Complete first so we do not treat that as an event-restart wipe.
         if tel.lap_number > self._last_lap_number:
+            self._maybe_sample_path(tel, now)
             prev = self._last_lap_number
             self._last_lap_number = tel.lap_number
             lap_time = tel.last_lap
             gaps = tuple(self._gaps_this_lap)
             path = tuple(self._path_this_lap)
+            force_rewound = self._force_rewound
             self._begin_lap_segment(tel, now)
             if (
                 self._armed
@@ -197,7 +247,8 @@ class LapDetector:
                     car_ordinal=tel.car_ordinal,
                     lap_number=prev + 1 if tel.lap_number == prev + 1 else tel.lap_number,
                     stream_gaps=len(gaps),
-                    suspect_rewind=len(gaps) > 0,
+                    suspect_rewind=force_rewound or len(gaps) > 0,
+                    force_rewound=force_rewound,
                     path=path,
                     gaps=gaps,
                 )
@@ -206,4 +257,10 @@ class LapDetector:
         if tel.lap_number < self._last_lap_number:
             self._last_lap_number = tel.lap_number
             self._begin_lap_segment(tel, now)
+            return None
+
+        # Same lap number: abandoned attempt / event restart may zero the timer.
+        self._maybe_reset_for_new_attempt(tel, now)
+        self._last_current_lap = tel.current_lap
+        self._maybe_sample_path(tel, now)
         return None

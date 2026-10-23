@@ -22,7 +22,7 @@ from collector.packet import format_lap_time
 from collector.tracks import load_track_names
 
 from .config import load_server_config
-from .store import TimingStore
+from .store import TimingStore, normalize_window, session_meta
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -84,6 +84,16 @@ def make_handler(
         def _error(self, code: int, message: str) -> None:
             self._send(code, {"error": message})
 
+        def _require_admin(self) -> bool:
+            if not admin_token:
+                self._error(503, "admin invites disabled")
+                return False
+            provided = _bearer(self)
+            if provided != admin_token:
+                self._error(401, "invalid admin token")
+                return False
+            return True
+
         def do_OPTIONS(self) -> None:  # noqa: N802
             self.send_response(204)
             self._apply_cors()
@@ -98,20 +108,109 @@ def make_handler(
                 self._send(200, {"ok": True})
                 return
 
+            if path == "/v1/admin/players":
+                if not self._require_admin():
+                    return
+                self._send(200, {"players": store.list_players()})
+                return
+
             if path == "/v1/board":
                 track = (qs.get("track") or [None])[0]
                 class_pi = (qs.get("class_pi") or [None])[0]
+                class_name = (qs.get("class") or [None])[0]
+                mode_vals = qs.get("mode")
+                mode = (
+                    mode_vals[0].strip()
+                    if mode_vals and mode_vals[0].strip()
+                    else "time_attack"
+                )
+                window_vals = qs.get("window")
+                window = (
+                    window_vals[0].strip()
+                    if window_vals and window_vals[0].strip()
+                    else "24h"
+                )
                 try:
                     limit = int((qs.get("limit") or ["500"])[0])
                 except ValueError:
                     self._error(400, "invalid limit")
                     return
-                rows = store.board(track=track, class_pi=class_pi, limit=limit)
+                try:
+                    rows = store.board(
+                        track=track,
+                        class_pi=class_pi,
+                        class_name=class_name,
+                        mode=mode,
+                        window=window,
+                        limit=limit,
+                    )
+                    window_key = normalize_window(window)
+                except ValueError as exc:
+                    self._error(400, str(exc))
+                    return
+                payload = {
+                    "window": window_key,
+                    "window_h": 24 if window_key == "24h" else None,
+                    "mode": mode or "time_attack",
+                    "session": session_meta(),
+                    "laps": [
+                        {
+                            "id": r.id,
+                            "player": r.display_name,
+                            "track": r.track,
+                            "lap_time_s": r.lap_time_s,
+                            "lap_time": format_lap_time(r.lap_time_s),
+                            "class_name": r.class_name,
+                            "class_pi": f"{r.class_name} {r.car_pi}",
+                            "car_ordinal": r.car_ordinal,
+                            "car": car_label(r.car_ordinal, cars),
+                            "mode": r.mode or None,
+                            "submitted_at": r.submitted_at,
+                        }
+                        for r in rows
+                    ],
+                }
+                self._send(200, payload)
+                return
+
+            if path == "/v1/leaderboard":
+                track = (qs.get("track") or [None])[0]
+                class_name = (qs.get("class") or [None])[0]
+                mode_vals = qs.get("mode")
+                mode = (
+                    mode_vals[0].strip()
+                    if mode_vals and mode_vals[0].strip()
+                    else "time_attack"
+                )
+                window_vals = qs.get("window")
+                window = (
+                    window_vals[0].strip()
+                    if window_vals and window_vals[0].strip()
+                    else "all"
+                )
+                try:
+                    limit = int((qs.get("limit") or ["100"])[0])
+                except ValueError:
+                    self._error(400, "invalid limit")
+                    return
+                try:
+                    rows = store.leaderboard(
+                        track=track,
+                        class_name=class_name,
+                        mode=mode,
+                        window=window,
+                        limit=limit,
+                    )
+                    window_key = normalize_window(window)
+                except ValueError as exc:
+                    self._error(400, str(exc))
+                    return
                 self._send(
                     200,
                     {
-                        "window_h": 24,
-                        "mode": "all_clean_laps",
+                        "window": window_key,
+                        "mode": mode or "time_attack",
+                        "session": session_meta(),
                         "laps": [
                             {
                                 "id": r.id,
@@ -119,9 +218,11 @@ def make_handler(
                                 "track": r.track,
                                 "lap_time_s": r.lap_time_s,
                                 "lap_time": format_lap_time(r.lap_time_s),
+                                "class_name": r.class_name,
                                 "class_pi": f"{r.class_name} {r.car_pi}",
                                 "car_ordinal": r.car_ordinal,
                                 "car": car_label(r.car_ordinal, cars),
+                                "mode": r.mode or None,
                                 "submitted_at": r.submitted_at,
                             }
                             for r in rows
@@ -172,6 +273,7 @@ def make_handler(
                                 "lap_time": format_lap_time(r.lap_time_s),
                                 "class_pi": f"{r.class_name} {r.car_pi}",
                                 "integrity": r.integrity,
+                                "mode": r.mode or None,
                                 "submitted_at": r.submitted_at,
                             }
                             for r in rows
@@ -214,6 +316,37 @@ def make_handler(
                 )
                 return
 
+            if path == "/v1/admin/laps":
+                if not self._require_admin():
+                    return
+                ids = body.get("ids")
+                track = str(body.get("track") or "")
+                if not isinstance(ids, list):
+                    self._error(400, "ids required")
+                    return
+                try:
+                    rows = store.retag_laps(
+                        ids=ids, track=track, known_tracks=known_tracks
+                    )
+                except ValueError as exc:
+                    self._error(400, str(exc))
+                    return
+                self._send(
+                    200,
+                    {
+                        "laps": [
+                            {
+                                "id": r.id,
+                                "track": r.track,
+                                "lap_time_s": r.lap_time_s,
+                                "player": r.display_name,
+                            }
+                            for r in rows
+                        ]
+                    },
+                )
+                return
+
             if path == "/v1/admin/invites":
                 if not admin_token:
                     self._error(503, "admin invites disabled")
@@ -222,9 +355,25 @@ def make_handler(
                 if provided != admin_token:
                     self._error(401, "invalid admin token")
                     return
+                display_name = str(body.get("display_name") or "").strip()
+                if display_name:
+                    try:
+                        code, canonical = store.create_reclaim_invite(display_name)
+                    except LookupError as exc:
+                        self._error(404, str(exc))
+                        return
+                    self._send(
+                        201,
+                        {
+                            "invite_code": code,
+                            "display_name": canonical,
+                            "reclaim": True,
+                        },
+                    )
+                    return
                 custom = body.get("code")
                 code = store.create_invite(str(custom) if custom else None)
-                self._send(201, {"invite_code": code})
+                self._send(201, {"invite_code": code, "reclaim": False})
                 return
 
             token = _bearer(self)
@@ -238,6 +387,7 @@ def make_handler(
 
             if path == "/v1/laps":
                 try:
+                    raw_mode = body.get("mode")
                     row = store.insert_lap(
                         device=device,
                         track=str(body.get("track", "")),
@@ -252,6 +402,7 @@ def make_handler(
                             if body.get("client_lap_id") is not None
                             else None
                         ),
+                        mode=str(raw_mode) if raw_mode is not None else None,
                         known_tracks=known_tracks,
                     )
                 except KeyError:
@@ -263,6 +414,7 @@ def make_handler(
                 except ValueError as exc:
                     self._error(400, str(exc))
                     return
+                on_board = row.integrity == "clean" and row.mode == "time_attack"
                 self._send(
                     201,
                     {
@@ -271,8 +423,9 @@ def make_handler(
                         "track": row.track,
                         "lap_time": format_lap_time(row.lap_time_s),
                         "integrity": row.integrity,
+                        "mode": row.mode or None,
                         "submitted_at": row.submitted_at,
-                        "on_board": row.integrity == "clean",
+                        "on_board": on_board,
                     },
                 )
                 return
@@ -285,6 +438,7 @@ def make_handler(
                         class_pi=str(body.get("class_pi", "")),
                         car=str(body.get("car", "")),
                         racing=bool(body.get("racing", True)),
+                        mode=str(body.get("mode", "")),
                     )
                 except Exception as exc:  # noqa: BLE001
                     self._error(400, str(exc))

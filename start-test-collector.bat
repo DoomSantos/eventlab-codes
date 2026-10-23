@@ -7,7 +7,7 @@ echo UDP Data Out port: 9876
 echo Web UI:            http://127.0.0.1:8765
 echo Timing API:        http://127.0.0.1:8787  (run start-test-server.bat first)
 echo.
-echo Tip: set Your label to "Time Attack" before Save selected locally.
+echo Tip: open http://127.0.0.1:8765/?lab=1 for path-capture / research tools.
 echo Tip: run mint-invite-test.bat if you need a fresh local invite.
 echo.
 

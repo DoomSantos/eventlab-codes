@@ -16,6 +16,7 @@
         --warn: #e8b84c;
         --font: "Segoe UI", system-ui, sans-serif;
       }
+      html { color-scheme: dark; }
       * { box-sizing: border-box; }
       body {
         margin: 0;
@@ -27,13 +28,14 @@
           var(--bg);
       }
       main {
-        width: min(1100px, calc(100% - 2rem));
+        width: min(720px, calc(100% - 2rem));
         margin: 0 auto;
         padding: 2rem 0 3rem;
       }
+      body.lab main { width: min(1100px, calc(100% - 2rem)); }
       h1 { margin: 0 0 0.35rem; font-size: 1.5rem; }
       h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
-      .sub { color: var(--muted); margin: 0 0 1.5rem; }
+      .sub { color: var(--muted); margin: 0 0 1.5rem; line-height: 1.45; }
       .panel {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -58,9 +60,16 @@
         padding: 0.7rem 0.8rem;
         border-radius: 10px;
         border: 1px solid var(--line);
-        background: rgba(255,255,255,0.03);
+        background: var(--panel);
+        color-scheme: dark;
         margin-bottom: 0.85rem;
       }
+      select option {
+        background-color: #14161b;
+        color: #f2efe8;
+      }
+      .dsr-select { margin-bottom: 0.85rem; }
+      td .dsr-select { margin-bottom: 0; min-width: 7.5rem; }
       .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
       button {
         border: 0;
@@ -81,6 +90,7 @@
         gap: 1rem;
         flex-wrap: wrap;
         font-variant-numeric: tabular-nums;
+        align-items: center;
       }
       .pill {
         display: inline-block;
@@ -95,11 +105,12 @@
       .pill.rewound { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
       .pill.paused { color: var(--ok); border-color: rgba(62, 207, 142, 0.45); }
       .pill.suspect { color: var(--warn); border-color: rgba(232, 184, 76, 0.5); }
+      .pill.ta { color: var(--accent); border-color: rgba(232, 93, 76, 0.45); }
       .muted { color: var(--muted); }
       .error { color: #ff8a7a; margin: 0.5rem 0 0; }
       .table-wrap { overflow-x: auto; }
       table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-      th, td { text-align: left; padding: 0.5rem 0.3rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+      th, td { text-align: left; padding: 0.55rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
       th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
       tr.uploaded td { opacity: 0.55; }
       input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--accent); }
@@ -109,76 +120,288 @@
         padding: 0.4rem 0.5rem;
       }
       .counts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+      .lab-only { display: none; }
+      body.lab .lab-only { display: block; }
+      body.lab .lab-only.inline { display: inline; }
+      body.lab .lab-only.flex { display: flex; }
+      body.lab .actions .lab-only { display: inline-block; }
+      body.lab tr.lab-only,
+      body.lab th.lab-only,
+      body.lab td.lab-only { display: table-cell; }
+      .lab-badge {
+        display: none;
+        margin-left: 0.5rem;
+        font-size: 0.75rem;
+        vertical-align: middle;
+      }
+      body.lab .lab-badge { display: inline-block; }
+      body.lab .driver-copy { display: none; }
+      body.signed-in:not(.lab) .claim-form { display: none; }
+      body.signed-in:not(.lab).reclaim-open .claim-form { display: block; }
+      .signed-banner { display: none; margin: 0 0 0.35rem; }
+      body.signed-in:not(.lab) .signed-banner { display: block; }
+      .reclaim { margin-top: 0.35rem; }
+      .help details.setup-box {
+        border: 0;
+        padding: 0;
+        margin: 0 0 0.35rem;
+      }
+      .help details.setup-box summary {
+        color: var(--text);
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin: 0 0 0.75rem;
+      }
+      .help-heading {
+        margin: 1rem 0 0.35rem;
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .help-steps {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: var(--text);
+        line-height: 1.55;
+      }
+      .help-steps li { margin-bottom: 0.55rem; }
+      .help-steps code,
+      .help details code {
+        font-size: 0.9em;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.06);
+      }
+      .help details {
+        border-top: 1px solid var(--line);
+        padding: 0.65rem 0 0;
+        margin-top: 0.65rem;
+      }
+      .help details:first-of-type { margin-top: 1rem; }
+      .help summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-weight: 600;
+        list-style: none;
+      }
+      .help summary::-webkit-details-marker { display: none; }
+      .help summary::before {
+        content: "+ ";
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .help details[open] summary::before { content: "− "; }
+      .help details.setup-box summary::before { content: "▾ "; }
+      .help details.setup-box:not([open]) summary::before { content: "▸ "; }
+      .help details p {
+        margin: 0.45rem 0 0;
+        color: var(--muted);
+        line-height: 1.45;
+        font-size: 0.92rem;
+      }
       @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <main>
-      <h1>DSR Lap Collector</h1>
-      <p class="sub">
-        FH6 Data Out → local session list. Claim an invite to auto-upload
-        <strong>Clean</strong> laps to the timing board API. Capture labeling stays for research.
+      <h1>
+        DSR Lap Collector
+        <span class="pill lab-badge">Lab</span>
+      </h1>
+      <p class="sub driver-copy">
+        Sign in once, turn on Data Out, then drive. Clean Time Attack laps
+        upload by themselves.
+      </p>
+      <p class="sub lab-only">
+        Lab mode: path captures, labels, local DB, and detect diagnostics.
+        Drivers use the normal UI (drop <code>?lab=1</code>).
       </p>
 
+      <section class="panel help">
+        <details id="setup-box" class="setup-box" open>
+          <summary>Setup</summary>
+          <ol class="help-steps">
+            <li>
+              <strong>Sign in</strong> — paste your invite and a display name,
+              then Claim invite (once per PC).
+            </li>
+            <li>
+              In FH6: <strong>Settings → HUD and Gameplay → Data Out → On</strong>.
+              IP <code>127.0.0.1</code> · Port <code id="help-port">9876</code>
+              (do not use 5200–5300).
+            </li>
+            <li>
+              Load a DoomSantos <strong>Time Attack</strong> event and start from
+              the pit / offset grid. Leave this collector running.
+            </li>
+            <li>
+              When status says <strong>Game connected</strong>, finish clean laps.
+              They upload on their own — you don’t pick a track or press send.
+            </li>
+          </ol>
+        </details>
+
+        <p class="help-heading">Troubleshooting</p>
+
+        <details>
+          <summary>Windows blocked the program</summary>
+          <p>
+            If Windows says it protected your PC: choose <strong>More info</strong>,
+            then <strong>Run anyway</strong>. That is normal for this small app.
+          </p>
+          <p>
+            Keep the collector window open while you race. The browser page is
+            just the display — closing the app stops uploads.
+          </p>
+        </details>
+
+        <details>
+          <summary>Stuck on “Waiting for game”</summary>
+          <p>
+            Data Out only sends while you are <strong>driving</strong> — not in
+            menus, pause, replay, or rewind. Pull away and watch for
+            <strong>Game connected</strong>.
+          </p>
+          <p>
+            Check IP and port digit-for-digit. Same PC → <code>127.0.0.1</code>.
+            Do not use ports <code>5200–5300</code> (FH6 uses those itself).
+          </p>
+          <p>
+            Run only one collector. Close SimHub or other telemetry apps — FH6
+            can send Data Out to one place at a time.
+          </p>
+          <p>
+            Restart FH6 after turning Data Out on. If a Microsoft Store / Xbox
+            copy of the game still never connects, message DSR for the one-time
+            Windows fix.
+          </p>
+          <p>
+            Windows Firewall may be blocking UDP
+            <code class="help-port-copy">9876</code> — allow it, then restart
+            this collector.
+          </p>
+        </details>
+
+        <details>
+          <summary>Game connected, but no laps</summary>
+          <p>
+            You must cross the line to finish a full lap. Use a
+            <strong>Time Attack</strong> share code — other EventLabs do not
+            count for the public board.
+          </p>
+          <p>
+            Start from the event’s pit / offset grid so the status shows
+            <strong>Time Attack</strong>. Later laps keep that mode automatically.
+          </p>
+        </details>
+
+        <details>
+          <summary>Lap says Rewound or didn’t upload</summary>
+          <p>
+            Rewind (or a big mid-lap jump) marks the lap Rewound — it stays off
+            the public board. Drive the next lap without rewinding.
+          </p>
+          <p>
+            Status <strong>Clean</strong> + <strong>Time Attack</strong> and
+            Uploaded <strong>Sent</strong> means it reached the board.
+          </p>
+        </details>
+
+        <details>
+          <summary>Signed in, but nothing reaches the board</summary>
+          <p>
+            You should see “Signed in as …”.
+          </p>
+          <p>
+            You need internet for uploads. Clean laps queue here and retry when
+            the board is back.
+          </p>
+          <p>
+            A new PC (or a reset collector) needs a <strong>replacement
+            invite</strong> from DSR for the <em>same</em> display name, so
+            your old times stay attached. Don’t pick a new name.
+          </p>
+        </details>
+
+        <details>
+          <summary>It was working, then it stopped</summary>
+          <p>
+            Alt-tab, sleep, or leaving FH6 can pause Data Out. Start driving
+            again and confirm Data Out is still On. Restart the game if the
+            status stays on Waiting for game.
+          </p>
+        </details>
+      </section>
+
       <section class="panel">
-        <h2>Cloud timing board</h2>
-        <div class="row">
-          <div>
-            <label for="api-base">API URL</label>
-            <input id="api-base" placeholder="http://127.0.0.1:8787" />
+        <h2>Sign in</h2>
+        <p id="signed-banner" class="signed-banner muted"></p>
+        <details id="reclaim-box" class="reclaim signed-banner">
+          <summary>Use a different invite</summary>
+          <p class="muted">Need a new name or a new PC? Paste a fresh invite below.</p>
+        </details>
+        <div class="claim-form">
+          <div class="row">
+            <div>
+              <label for="invite">Invite code</label>
+              <input id="invite" autocomplete="off" placeholder="From DSR" />
+            </div>
+            <div>
+              <label for="player">Display name</label>
+              <input id="player" autocomplete="nickname" placeholder="Your name on the board" />
+            </div>
           </div>
-          <div>
-            <label for="invite">Invite code</label>
-            <input id="invite" autocomplete="off" placeholder="From DSR" />
+          <div class="lab-only">
+            <div class="row">
+              <div>
+                <label for="api-base">API URL</label>
+                <input id="api-base" placeholder="http://127.0.0.1:8787" />
+              </div>
+              <div>
+                <label for="track">Track (manual override)</label>
+                <select id="track"></select>
+              </div>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="claim" type="button">Claim invite</button>
+            <button id="save-settings" class="secondary lab-only" type="button">Save settings</button>
+            <button id="export" class="secondary lab-only" type="button">Export local JSON</button>
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label for="player">Display name</label>
-            <input id="player" autocomplete="nickname" placeholder="Your name" />
-          </div>
-          <div>
-            <label for="track">Track</label>
-            <select id="track"></select>
-          </div>
-        </div>
-        <div class="actions">
-          <button id="claim" type="button">Claim invite</button>
-          <button id="save-settings" class="secondary" type="button">Save settings</button>
-          <button id="export" class="secondary" type="button">Export local JSON</button>
-        </div>
-        <p id="cloud-status" class="muted">Not claimed yet.</p>
+        <p id="cloud-status" class="muted">Not signed in yet.</p>
         <p id="settings-msg" class="muted"></p>
-        <div id="capture-counts" class="counts"></div>
+        <div id="capture-counts" class="counts lab-only"></div>
       </section>
 
       <section class="panel">
         <div class="status">
-          <span id="udp-state" class="pill">UDP idle</span>
+          <span id="udp-state" class="pill">Waiting for game</span>
+          <span id="live-mode" class="pill" hidden>Time Attack</span>
           <span id="live-class" class="muted">Class/PI —</span>
           <span id="live-lap" class="muted">Lap —</span>
-          <span id="packets" class="muted">0 pkt/s</span>
+          <span id="packets" class="muted lab-only inline">0 pkt/s</span>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Session laps</h2>
-        <p id="session-empty" class="muted">No laps yet — go drive.</p>
+        <h2>Your laps</h2>
+        <p id="session-empty" class="muted">No laps yet — finish a clean lap.</p>
         <div class="table-wrap">
           <table id="session-table" hidden>
             <thead>
               <tr>
-                <th><input id="select-all" type="checkbox" title="Select all" /></th>
+                <th class="lab-only"><input id="select-all" type="checkbox" title="Select all" /></th>
                 <th>Time</th>
                 <th>Track</th>
-                <th>Class/PI</th>
+                <th>Class</th>
                 <th>Car</th>
-                <th>Auto</th>
-                <th>Mode</th>
-                <th>Cloud</th>
-                <th>Gaps</th>
-                <th>Your label</th>
-                <th>Capture</th>
+                <th>Status</th>
+                <th>Uploaded</th>
+                <th class="lab-only">Gaps</th>
+                <th class="lab-only">Your label</th>
+                <th class="lab-only">Capture</th>
               </tr>
             </thead>
             <tbody id="session-body"></tbody>
@@ -186,19 +409,22 @@
         </div>
         <p id="session-error" class="error" hidden></p>
         <div class="actions">
-          <button id="save-captures" type="button">Save path captures</button>
-          <button id="cloud-selected" type="button">Send selected to cloud</button>
-          <button id="upload-selected" class="secondary" type="button">Save times to local DB</button>
-          <button id="remove-selected" class="secondary" type="button">Remove selected</button>
-          <button id="clear-session" class="secondary" type="button">Clear list</button>
+          <button id="clear-session" class="secondary" type="button" hidden>Clear this list</button>
+          <button id="save-captures" class="lab-only" type="button">Save path captures</button>
+          <button id="cloud-selected" class="lab-only" type="button">Send selected to cloud</button>
+          <button id="upload-selected" class="secondary lab-only" type="button">Save times to local DB</button>
+          <button id="remove-selected" class="secondary lab-only" type="button">Remove selected</button>
         </div>
-        <p class="muted" style="margin-top:0.5rem">
-          For Time Attack research: set label to <strong>Time Attack</strong>, select the laps, then
-          <strong>Save path captures</strong> (not “local DB”).
+        <p id="clear-hint" class="muted driver-copy" style="margin-top:0.5rem" hidden>
+          Clears this screen only — times already on the board stay there.
+        </p>
+        <p class="muted lab-only" style="margin-top:0.5rem">
+          Research: set label to <strong>Time Attack</strong>, select laps, then
+          <strong>Save path captures</strong>.
         </p>
       </section>
 
-      <section class="panel">
+      <section class="panel lab-only">
         <h2>Uploaded (this PC)</h2>
         <div class="table-wrap">
           <table>
@@ -219,11 +445,17 @@
         </div>
       </section>
     </main>
+    <script src="dsr-select.js"></script>
     <script>
       const $ = (id) => document.getElementById(id);
+      const LAB = new URLSearchParams(location.search).has("lab");
+      if (LAB) document.body.classList.add("lab");
+
       let hydrated = false;
       let labelTimers = {};
       let lastSessionKey = "";
+      let hiddenTrack = "";
+      let hiddenApiBase = "";
 
       async function api(path, options) {
         const res = await fetch(path, {
@@ -239,10 +471,18 @@
         return data;
       }
 
+      function driverCloudError(raw) {
+        const text = String(raw || "");
+        if (/unreachable|refused|timed out|10061|10060|ENOTFOUND|offline|Failed to fetch/i.test(text)) {
+          return "Can't reach the timing board. Check your internet — Clean laps will retry.";
+        }
+        return text;
+      }
+
       function currentSettings() {
         return {
           player_name: $("player").value.trim(),
-          track: $("track").value,
+          track: LAB ? $("track").value : hiddenTrack,
         };
       }
 
@@ -253,6 +493,10 @@
       }
 
       function fillTracks(tracks, selected) {
+        if (!LAB) {
+          hiddenTrack = selected || hiddenTrack || (tracks[0] || "");
+          return;
+        }
         const sel = $("track");
         const previous = sel.value || selected;
         sel.innerHTML = tracks.map((t) => `<option value="${t}">${t}</option>`).join("");
@@ -262,7 +506,7 @@
 
       function renderCounts(counts) {
         const box = $("capture-counts");
-        if (!counts) {
+        if (!LAB || !counts) {
           box.innerHTML = "";
           return;
         }
@@ -290,52 +534,71 @@
           .join("");
       }
 
+      function statusCell(lap) {
+        const integrityClass = (lap.integrity || "Clean").toLowerCase();
+        const parts = [
+          `<span class="pill ${integrityClass}">${lap.integrity}</span>`,
+        ];
+        if (lap.mode === "time_attack") {
+          parts.push(`<span class="pill ta">Time Attack</span>`);
+        }
+        return parts.join(" ");
+      }
+
       function renderSession(laps) {
         const empty = $("session-empty");
         const table = $("session-table");
         const body = $("session-body");
+        $("clear-session").hidden = !laps.length;
+        const hint = $("clear-hint");
+        if (hint) hint.hidden = LAB || !laps.length;
         if (!laps.length) {
           empty.hidden = false;
           table.hidden = true;
           body.innerHTML = "";
-          $("select-all").checked = false;
+          if (LAB) $("select-all").checked = false;
           return;
         }
         empty.hidden = true;
         table.hidden = false;
         body.innerHTML = laps
           .map((lap) => {
-            const integrityClass = (lap.integrity || "Clean").toLowerCase();
             const jumps = (lap.gap_jumps_m || []).map((n) => `${n}m`).join(", ") || "—";
             const cloud = lap.cloud_uploaded
               ? "Sent"
               : lap.cloud_error
-                ? "Err"
+                ? "Error"
                 : "—";
-            const mode = lap.mode === "time_attack" ? "Time Attack" : "—";
+            const check = LAB
+              ? `<td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>`
+              : "";
+            const labCols = LAB
+              ? `<td title="${jumps}">${lap.stream_gaps || 0}</td>
+                 <td>
+                   <select class="label-select" data-id="${lap.id}">
+                     ${labelOptions(lap.label)}
+                   </select>
+                 </td>
+                 <td>${lap.capture_saved ? "Saved" : "—"}</td>`
+              : "";
             return `<tr class="${lap.uploaded || lap.cloud_uploaded ? "uploaded" : ""}">
-              <td><input class="lap-check" type="checkbox" value="${lap.id}" /></td>
+              ${check}
               <td>${lap.lap_time}</td>
               <td>${lap.track || "—"}</td>
               <td>${lap.class_pi}</td>
               <td>${lap.car || "—"}</td>
-              <td><span class="pill ${integrityClass}">${lap.integrity}</span></td>
-              <td>${mode}</td>
+              <td>${statusCell(lap)}</td>
               <td title="${lap.cloud_error || ""}">${cloud}</td>
-              <td title="${jumps}">${lap.stream_gaps || 0}</td>
-              <td>
-                <select class="label-select" data-id="${lap.id}">
-                  ${labelOptions(lap.label)}
-                </select>
-              </td>
-              <td>${lap.capture_saved ? "Saved" : "—"}</td>
+              ${labCols}
             </tr>`;
           })
           .join("");
 
-        body.querySelectorAll(".label-select").forEach((sel) => {
-          sel.onchange = () => queueLabel(sel.dataset.id, sel.value);
-        });
+        if (LAB) {
+          body.querySelectorAll(".label-select").forEach((sel) => {
+            sel.onchange = () => queueLabel(sel.dataset.id, sel.value);
+          });
+        }
       }
 
       function queueLabel(id, label) {
@@ -354,6 +617,7 @@
       }
 
       function renderSaved(entries) {
+        if (!LAB) return;
         const body = $("saved-body");
         if (!entries.length) {
           body.innerHTML = `<tr><td colspan="6" class="muted">Nothing uploaded yet</td></tr>`;
@@ -377,49 +641,83 @@
         const state = await api("/api/state");
         if (!hydrated) {
           if (state.player_name) $("player").value = state.player_name;
-          if (state.cloud && state.cloud.api_base) $("api-base").value = state.cloud.api_base;
+          hiddenApiBase = (state.cloud && state.cloud.api_base) || "";
+          if (LAB && state.cloud && state.cloud.api_base) {
+            $("api-base").value = state.cloud.api_base;
+          }
           fillTracks(state.tracks, state.track);
+          const port = String(state.udp_port || 9876);
+          $("help-port").textContent = port;
+          document.querySelectorAll(".help-port-copy").forEach((el) => {
+            el.textContent = port;
+          });
           hydrated = true;
         } else if (state.track_hint) {
-          // Auto-detect won — don't keep a stale manual Monza selection
           fillTracks(state.tracks, state.track);
         } else {
-          fillTracks(state.tracks, $("track").value || state.track);
+          fillTracks(state.tracks, LAB ? ($("track").value || state.track) : state.track);
         }
+        if (!LAB && state.track) hiddenTrack = state.track;
+
         const cloud = state.cloud || {};
         const cloudEl = $("cloud-status");
         if (cloud.claimed) {
-          cloudEl.textContent = `Signed in as ${cloud.display_name} · auto-upload Clean laps · queue ${cloud.queue || 0}${cloud.last_ok ? " · " + cloud.last_ok : ""}${cloud.last_error ? " · err: " + cloud.last_error : ""}`;
+          document.body.classList.add("signed-in");
+          $("signed-banner").textContent =
+            `You're signed in as ${cloud.display_name}. Clean Time Attack laps upload automatically.`;
+          cloudEl.textContent = LAB
+            ? `Signed in as ${cloud.display_name} · auto-upload Clean Time Attack laps · queue ${cloud.queue || 0}${cloud.last_ok ? " · " + cloud.last_ok : ""}${cloud.last_error ? " · err: " + cloud.last_error : ""}`
+            : (cloud.last_error ? driverCloudError(cloud.last_error) : (cloud.last_ok || ""));
         } else {
-          cloudEl.textContent = `Not claimed · API ${cloud.api_base || "—"}${cloud.last_error ? " · " + cloud.last_error : ""}`;
+          document.body.classList.remove("signed-in");
+          document.body.classList.remove("reclaim-open");
+          $("reclaim-box").open = false;
+          cloudEl.textContent = LAB
+            ? `Not claimed · API ${cloud.api_base || "—"}${cloud.last_error ? " · " + cloud.last_error : ""}`
+            : "Not signed in — paste your invite and display name, then Claim";
         }
+        cloudEl.hidden = !cloudEl.textContent;
+
+        const live = state.live;
+        const udpLive = state.packets_per_sec > 0;
+        const driving = Boolean(udpLive && live && live.is_race_on);
         const match = state.last_track_match;
         const ta = state.last_ta_match;
         const bits = [];
-        if (state.track_hint) {
-          bits.push(`Track auto-detected: ${state.track_hint}`);
-        } else if (match && match.error) {
-          bits.push(`Track detect error: ${match.error}`);
-        } else if (match && match.matched === false) {
-          bits.push(
-            `Track detect miss (dist ${match.distance_m ?? "?"}m, coverage ${match.coverage ?? "?"}, pts ${match.path_points ?? 0}) — using ${state.track}`
-          );
+        if (LAB) {
+          if (state.track_hint) {
+            bits.push(`Track auto-detected: ${state.track_hint}`);
+          } else if (match && match.error) {
+            bits.push(`Track detect error: ${match.error}`);
+          } else if (match && match.matched === false) {
+            bits.push(
+              `Track detect miss (dist ${match.distance_m ?? "?"}m, coverage ${match.coverage ?? "?"}, pts ${match.path_points ?? 0}) — using ${state.track}`
+            );
+          }
+          if ((ta && ta.matched) || state.ta_session_active) {
+            if (ta && ta.matched) {
+              bits.push(
+                `Time Attack start matched [${ta.track || "?"}${ta.variant ? "/" + ta.variant : ""}] (dist ${ta.distance_m ?? "?"}m) — session armed`
+              );
+            } else {
+              bits.push("Time Attack session active (later laps inherit Mode)");
+            }
+          } else if (ta && ta.error) {
+            bits.push(`Time Attack detect: ${ta.error}`);
+          } else if (ta && ta.matched === false) {
+            bits.push(
+              `Time Attack start miss (best ${ta.track ?? "?"}: dist ${ta.distance_m ?? "?"}m, coverage ${ta.coverage ?? "?"})`
+            );
+          }
+        } else if (state.ta_session_active || (ta && ta.matched)) {
+          const trackName = state.track_hint || (ta && ta.track) || state.track;
+          bits.push(trackName ? `Time Attack · ${trackName}` : "Time Attack");
+        } else if (driving) {
+          bits.push("Not a Time Attack event — times stay off the public board");
         }
-        if (ta && ta.matched) {
-          bits.push(
-            `Time Attack start matched (dist ${ta.distance_m ?? "?"}m, coverage ${ta.coverage ?? "?"})`
-          );
-        } else if (ta && ta.error) {
-          bits.push(`Time Attack detect: ${ta.error}`);
-        } else if (ta && ta.matched === false) {
-          bits.push(
-            `Time Attack start miss (dist ${ta.distance_m ?? "?"}m, coverage ${ta.coverage ?? "?"})`
-          );
-        }
-        if (bits.length) {
-          $("settings-msg").textContent = bits.join(" · ");
-        }
-        const sessionKey = JSON.stringify(state.session_laps || []);
+        $("settings-msg").textContent = bits.join(" · ");
+
+        const sessionKey = JSON.stringify(state.session_laps || []) + (LAB ? "|lab" : "|drv");
         if (sessionKey !== lastSessionKey) {
           renderSession(state.session_laps || []);
           lastSessionKey = sessionKey;
@@ -427,55 +725,149 @@
         renderSaved(state.saved || []);
         renderCounts(state.capture_counts);
 
-        const live = state.live;
         const udp = $("udp-state");
-        if (state.packets_per_sec > 0) {
-          udp.textContent = "UDP live";
+        if (udpLive) {
+          udp.textContent = "Game connected";
           udp.classList.add("live");
         } else {
-          udp.textContent = "UDP idle — check Data Out IP/port";
+          udp.textContent = "Waiting for game";
           udp.classList.remove("live");
         }
-        $("packets").textContent = `${state.packets_per_sec} pkt/s`;
-        if (live) {
+        if (LAB) $("packets").textContent = `${state.packets_per_sec} pkt/s`;
+
+        const modeEl = $("live-mode");
+        if (driving && (state.ta_session_active || (ta && ta.matched))) {
+          modeEl.hidden = false;
+          modeEl.classList.add("ta");
+        } else {
+          modeEl.hidden = true;
+          modeEl.classList.remove("ta");
+        }
+
+        if (driving && live) {
           $("live-class").textContent = live.class_pi;
-          $("live-lap").textContent = `Lap ${live.lap_number} · current ${live.current_lap}${live.car ? " · " + live.car : ""}`;
+          $("live-lap").textContent = `Lap ${live.lap_number} · ${live.current_lap}${live.car ? " · " + live.car : ""}`;
         } else {
           $("live-class").textContent = "Class/PI —";
           $("live-lap").textContent = "Lap —";
         }
       }
 
-      $("select-all").onchange = () => {
-        const on = $("select-all").checked;
-        document.querySelectorAll(".lap-check").forEach((el) => {
-          el.checked = on;
-        });
-      };
+      if (LAB) {
+        $("select-all").onchange = () => {
+          const on = $("select-all").checked;
+          document.querySelectorAll(".lap-check").forEach((el) => {
+            el.checked = on;
+          });
+        };
 
-      $("save-settings").onclick = async () => {
-        try {
-          await api("/api/cloud/settings", {
-            method: "POST",
-            body: JSON.stringify({ api_base: $("api-base").value.trim() }),
-          });
-          await api("/api/settings", {
-            method: "POST",
-            body: JSON.stringify(currentSettings()),
-          });
-          $("settings-msg").textContent = "Settings saved.";
-          refresh();
-        } catch (err) {
-          $("settings-msg").textContent = err.message;
-        }
-      };
+        $("save-settings").onclick = async () => {
+          try {
+            await api("/api/cloud/settings", {
+              method: "POST",
+              body: JSON.stringify({ api_base: $("api-base").value.trim() }),
+            });
+            await api("/api/settings", {
+              method: "POST",
+              body: JSON.stringify(currentSettings()),
+            });
+            $("settings-msg").textContent = "Settings saved.";
+            refresh();
+          } catch (err) {
+            $("settings-msg").textContent = err.message;
+          }
+        };
+
+        $("cloud-selected").onclick = async () => {
+          $("session-error").hidden = true;
+          try {
+            const result = await api("/api/cloud/upload", {
+              method: "POST",
+              body: JSON.stringify({ ids: selectedIds() }),
+            });
+            $("settings-msg").textContent = `Queued ${result.queued} lap(s) for cloud upload`;
+            await refresh();
+          } catch (err) {
+            $("session-error").hidden = false;
+            $("session-error").textContent = err.message;
+          }
+        };
+
+        $("save-captures").onclick = async () => {
+          $("session-error").hidden = true;
+          try {
+            const result = await api("/api/session/save-captures", {
+              method: "POST",
+              body: JSON.stringify({
+                ...currentSettings(),
+                ids: selectedIds(),
+              }),
+            });
+            $("settings-msg").textContent = `Saved ${result.saved} capture file(s) under collector/captures/`;
+            await refresh();
+          } catch (err) {
+            $("session-error").hidden = false;
+            $("session-error").textContent = err.message;
+          }
+        };
+
+        $("upload-selected").onclick = async () => {
+          $("session-error").hidden = true;
+          try {
+            const result = await api("/api/session/upload", {
+              method: "POST",
+              body: JSON.stringify({
+                ...currentSettings(),
+                ids: selectedIds(),
+              }),
+            });
+            $("settings-msg").textContent =
+              `Uploaded ${result.uploaded} lap(s) · ${result.improved} new best(s)`;
+            await refresh();
+          } catch (err) {
+            $("session-error").hidden = false;
+            $("session-error").textContent = err.message;
+          }
+        };
+
+        $("remove-selected").onclick = async () => {
+          $("session-error").hidden = true;
+          try {
+            await api("/api/session/remove", {
+              method: "POST",
+              body: JSON.stringify({ ids: selectedIds() }),
+            });
+            await refresh();
+          } catch (err) {
+            $("session-error").hidden = false;
+            $("session-error").textContent = err.message;
+          }
+        };
+
+        $("export").onclick = async () => {
+          try {
+            const result = await api("/api/export", { method: "POST", body: "{}" });
+            $("settings-msg").textContent =
+              `Export OK — ${result.count} best lap(s) written. Open /board-lab.html to check.`;
+          } catch (err) {
+            $("settings-msg").textContent = err.message;
+          }
+        };
+      }
+
+      $("reclaim-box").addEventListener("toggle", () => {
+        document.body.classList.toggle("reclaim-open", $("reclaim-box").open);
+      });
 
       $("claim").onclick = async () => {
         try {
-          await api("/api/cloud/settings", {
-            method: "POST",
-            body: JSON.stringify({ api_base: $("api-base").value.trim() }),
-          });
+          const apiBase = LAB ? $("api-base").value.trim() : hiddenApiBase;
+          if (apiBase) {
+            await api("/api/cloud/settings", {
+              method: "POST",
+              body: JSON.stringify({ api_base: apiBase }),
+            });
+          }
           const result = await api("/api/cloud/claim", {
             method: "POST",
             body: JSON.stringify({
@@ -483,7 +875,7 @@
               display_name: $("player").value.trim(),
             }),
           });
-          $("settings-msg").textContent = `Claimed as ${result.display_name}. Clean laps will auto-upload.`;
+          $("settings-msg").textContent = `Signed in as ${result.display_name}. Go drive.`;
           $("invite").value = "";
           await refresh();
         } catch (err) {
@@ -491,90 +883,25 @@
         }
       };
 
-      $("cloud-selected").onclick = async () => {
-        $("session-error").hidden = true;
-        try {
-          const result = await api("/api/cloud/upload", {
-            method: "POST",
-            body: JSON.stringify({ ids: selectedIds() }),
-          });
-          $("settings-msg").textContent = `Queued ${result.queued} lap(s) for cloud upload`;
-          await refresh();
-        } catch (err) {
-          $("session-error").hidden = false;
-          $("session-error").textContent = err.message;
-        }
-      };
-
-      $("save-captures").onclick = async () => {
-        $("session-error").hidden = true;
-        try {
-          const result = await api("/api/session/save-captures", {
-            method: "POST",
-            body: JSON.stringify({
-              ...currentSettings(),
-              ids: selectedIds(),
-            }),
-          });
-          $("settings-msg").textContent = `Saved ${result.saved} capture file(s) under collector/captures/`;
-          await refresh();
-        } catch (err) {
-          $("session-error").hidden = false;
-          $("session-error").textContent = err.message;
-        }
-      };
-
-      $("upload-selected").onclick = async () => {
-        $("session-error").hidden = true;
-        try {
-          const result = await api("/api/session/upload", {
-            method: "POST",
-            body: JSON.stringify({
-              ...currentSettings(),
-              ids: selectedIds(),
-            }),
-          });
-          $("settings-msg").textContent =
-            `Uploaded ${result.uploaded} lap(s) · ${result.improved} new best(s)`;
-          await refresh();
-        } catch (err) {
-          $("session-error").hidden = false;
-          $("session-error").textContent = err.message;
-        }
-      };
-
-      $("remove-selected").onclick = async () => {
-        $("session-error").hidden = true;
-        try {
-          await api("/api/session/remove", {
-            method: "POST",
-            body: JSON.stringify({ ids: selectedIds() }),
-          });
-          await refresh();
-        } catch (err) {
-          $("session-error").hidden = false;
-          $("session-error").textContent = err.message;
-        }
-      };
-
       $("clear-session").onclick = async () => {
         $("session-error").hidden = true;
+        const n = document.querySelectorAll("#session-body tr").length;
+        if (
+          !window.confirm(
+            n
+              ? `Clear ${n} lap(s) from this list? Times already on the board stay there.`
+              : "Clear the session list?"
+          )
+        ) {
+          return;
+        }
         try {
           await api("/api/session/clear", { method: "POST", body: "{}" });
+          $("settings-msg").textContent = "List cleared.";
           await refresh();
         } catch (err) {
           $("session-error").hidden = false;
           $("session-error").textContent = err.message;
-        }
-      };
-
-      $("export").onclick = async () => {
-        try {
-          const result = await api("/api/export", { method: "POST", body: "{}" });
-          $("settings-msg").textContent =
-            `Export OK — ${result.count} best lap(s) written. Open /board-lab.html to check.`;
-        } catch (err) {
-          $("settings-msg").textContent = err.message;
         }
       };
 

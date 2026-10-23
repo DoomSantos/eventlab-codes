@@ -2,7 +2,15 @@
 # Build: pyinstaller collector/collector.spec
 # Output: dist/DSR-Lap-Collector/
 
+from pathlib import Path
+
 block_cipher = None
+
+_root = Path(SPECPATH).resolve().parent
+_fingerprints = [
+    (str(path), "data/fingerprints")
+    for path in sorted((_root / "data" / "fingerprints").glob("*.json"))
+]
 
 a = Analysis(
     ["desktop_main.py"],
@@ -10,10 +18,13 @@ a = Analysis(
     binaries=[],
     datas=[
         ("static/index.html", "collector/static"),
+        ("static/dsr-select.js", "collector/static"),
         ("../data/tracks.json", "data"),
         ("../data/cars.json", "data"),
         ("../data/default-api.json", "data"),
-        ("../data/fingerprints/albert-park.json", "data/fingerprints"),
+        ("../data/time-attack-codes.json", "data"),
+        ("../data/time-attack-tracks.json", "data"),
+        *_fingerprints,
     ],
     hiddenimports=["collector", "collector.app", "collector.cloud", "collector.verify"],
     hookspath=[],

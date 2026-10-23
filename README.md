@@ -1,101 +1,34 @@
-# FH6 EventLab Track Codes + Leaderboard
+# DoomSantos Racing — Time Attack
 
-A free, self-hosted site for **doomsantosracing** EventLab share codes and community lap times.
+PC timing for Forza Horizon 6 **Time Attack** EventLabs.
 
-- Codes: https://doomsantos.github.io/eventlab-codes/
-- Leaderboard: https://doomsantos.github.io/eventlab-codes/leaderboard.html
+- [Track Codes](https://doomsantos.github.io/eventlab-codes/)
+- [Time Attack](https://doomsantos.github.io/eventlab-codes/leaderboard.html)
+- [Live Timing](https://doomsantos.github.io/eventlab-codes/live-timing.html)
+- [Leaderboards](https://doomsantos.github.io/eventlab-codes/leaderboards.html)
 
-## How to update track codes
+## What it is
 
-Edit **`data/tracks.json`** only. You do **not** need to touch HTML/CSS/JS for new tracks or codes.
+Drive the official Time Attack events. The Windows collector reads Forza **Data Out**, spots the track from the offset pit start, and uploads **Clean** laps as you cross the line.
 
-### Add a new track
+Regular EventLab Track Codes stay for fun. They do not count on Live Timing or Leaderboards.
 
-```json
-{
-  "name": "Spa-Francorchamps",
-  "variants": [
-    {
-      "label": "With Drivatars",
-      "icon": "robot",
-      "comingSoon": true
-    },
-    {
-      "label": "Without Drivatars",
-      "icon": "driver",
-      "events": [
-        { "laps": 5, "code": "123456789" },
-        { "laps": 15, "code": "987654321" }
-      ]
-    }
-  ]
-}
-```
-
-Paste that object into the `"tracks"` array, save, commit, and push.
-
-## Leaderboard (v1) — PC collector
-
-Lap times come from Forza Horizon 6 **Data Out** UDP on PC.
-
-### Timing API (local)
-
-```powershell
-python -m server --port 8787
-python -m server --create-invite
-```
-
-### Run the collector
-
-From this project folder (Python 3.10+):
-
-```powershell
-python -m collector --port 9876 --web-port 8765
-```
-
-Open **http://127.0.0.1:8765** → claim an invite → Clean laps auto-upload.
-
-Private lab board (API): http://127.0.0.1:8080/board-lab.html (with `python -m http.server 8080` and the API running).
-
-### Game settings
-
-1. FH6 → **Settings → HUD and Gameplay → Data Out → On**
-2. **Data Out IP Address** → your PC IP (`127.0.0.1` if FH6 is on the same PC)
-3. **Data Out IP Port** → `9876` (avoid 5200–5300)
-4. Allow UDP 9876 through Windows Firewall if needed
-
-### Submit a lap
-
-1. Enter your **display name** and select the **track**
-2. Click **Save settings**
-3. Drive an EventLab event — when a lap completes, the UI shows **Lap ready**
-4. Click **Save lap** (keeps best time per name + track + Class/PI, e.g. `A 699`)
-5. Click **Export to site JSON** → writes `data/leaderboard.json`
-6. Commit and push so the public leaderboard updates
-
-```powershell
-python -m collector --export-only
-git add data/leaderboard.json
-git commit -m "Update leaderboard times"
-git push
-```
-
-### Notes
-
-- Ranked by **track**, then **Class/PI** (`A 699`)
+- **Live Timing** — best Clean lap **today (AEST)** per driver, plus who’s on a Time Attack event right now
+- **Leaderboards** — one best Clean lap per driver × track × class
 - Assists are not recorded
-- Xbox support / auto track detect come later
+- Paused and rewound laps are not ranked
 
-## Preview the website locally
+## Windows collector
 
-```powershell
-python -m http.server 8080
-```
+Download: **[DSR-Lap-Collector.zip](https://github.com/DoomSantos/eventlab-codes/releases/latest/download/DSR-Lap-Collector.zip)**
 
-Visit http://localhost:8080 and http://localhost:8080/leaderboard.html
+1. Unzip anywhere and run `DSR-Lap-Collector.exe`. If Windows SmartScreen appears: **More info → Run anyway**.
+2. Leave that window open. A browser opens [http://127.0.0.1:8765](http://127.0.0.1:8765) — follow **Setup** on that page (first launch asks you to claim with the invite you were sent).
+3. Forza Horizon 6 → Settings → HUD and Gameplay → **Data Out → On**
+   - IP address: `127.0.0.1`
+   - Port: `9876` (avoid 5200–5300)
+4. Load a **Time Attack** EventLab from the pit / offset grid and drive. Status should read **Game connected**. Clean times upload on their own.
 
-## Features
+If something fails, use **Troubleshooting** on the collector page.
 
-- Nested track → With/Without Drivatars → lap codes (tap to copy)
-- Public leaderboard filtered by track and Class/PI
-- PC Data Out collector with local SQLite + JSON export
+Same PC as the game. One collector window at a time. If you switch layouts (for example full Monza vs Junior Course), quit the event and load the other one so the session can reset.
