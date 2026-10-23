@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      if (location.hostname.endsWith("github.io")) {
+        const base = document.createElement("base");
+        base.href = "/eventlab-codes/";
+        document.head.appendChild(base);
+      }
+    </script>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta
+      name="description"
+      content="DoomSantos Racing Time Attack — lasting leaderboards."
+    />
+    <title>Leaderboards · Time Attack · DoomSantos Racing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20261023" />
+  </head>
+  <body data-ta-page="leaderboard">
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <div class="banner-hero">
+      <img
+        class="banner-art"
+        src="brand/banner-hero.jpg"
+        alt="DoomSantos Racing — wizard forging a race track"
+        width="1024"
+        height="319"
+      />
+    </div>
+
+    <main class="page">
+      <header class="hero">
+        <nav class="site-nav" aria-label="Site">
+          <a href="./">Track Codes</a>
+          <a href="leaderboard.html">Time Attack</a>
+        </nav>
+        <h1 class="page-title-fallback">Leaderboards</h1>
+        <img
+          class="title-art title-art-ta"
+          src="brand/title-time-attack-blend.png"
+          alt="Time Attack"
+          width="560"
+          height="180"
+        />
+        <p class="tagline">One best Clean Time Attack lap per driver, track, and class.</p>
+      </header>
+
+      <section class="board-controls panel-block" aria-label="Filters">
+        <div class="control-grid control-grid-3">
+          <div>
+            <label for="track-filter">Track</label>
+            <select id="track-filter"></select>
+          </div>
+          <div>
+            <label for="class-filter">Class</label>
+            <select id="class-filter"></select>
+          </div>
+          <div>
+            <label for="window-filter">Results</label>
+            <select id="window-filter"></select>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-block" aria-label="Leaderboard">
+        <div class="board-meta">
+          <p id="result-count" class="muted">Loading…</p>
+          <p id="updated-at" class="muted"></p>
+        </div>
+        <div class="table-wrap">
+          <table class="board-table">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Driver</th>
+                <th scope="col">Track</th>
+                <th scope="col">Time</th>
+                <th scope="col">Class/PI</th>
+                <th scope="col">Car</th>
+              </tr>
+            </thead>
+            <tbody id="board-body">
+              <tr>
+                <td colspan="6">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="board-error" class="load-error" hidden></p>
+      </section>
+
+      <footer class="footer">
+        <p>
+          <a class="inline-link" href="live-timing.html">Live Timing</a>
+          ·
+          <a class="inline-link" href="./">Track Codes</a>
+        </p>
+      </footer>
+    </main>
+    <script src="ta-public-board.js" defer></script>
+    <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "d4b2590935b04c538a728a7368f401f9"}'></script>
+  </body>
+</html>
