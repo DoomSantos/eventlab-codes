@@ -331,6 +331,15 @@ class TrackNameTests(unittest.TestCase):
         self.assertIn("Top Gear Test Track", names)
 
 
+class LanAddressTests(unittest.TestCase):
+    def test_lan_ips_skip_loopback(self) -> None:
+        from collector.app import lan_ipv4_addresses
+
+        for ip in lan_ipv4_addresses():
+            self.assertFalse(ip.startswith("127."))
+            self.assertFalse(ip.startswith("169.254."))
+
+
 class DriverUiTests(unittest.TestCase):
     def test_driver_page_has_setup_and_troubleshooting(self) -> None:
         html = (
@@ -339,6 +348,8 @@ class DriverUiTests(unittest.TestCase):
         for needle in (
             "Claim invite",
             "Data Out",
+            "Xbox Series X|S",
+            "127.0.0.1",
             "Waiting for game",
             "Windows blocked the program",
             "Lap says Rewound",

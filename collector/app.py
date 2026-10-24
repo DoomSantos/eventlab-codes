@@ -5,7 +5,8 @@ Usage:
   python -m collector --port 9876 --web-port 8765
 
 Then in FH6: Settings → HUD and Gameplay → Data Out ON
-  IP = this PC's LAN IP (or 127.0.0.1 if same machine)
+  PC (same machine): IP 127.0.0.1
+  Xbox / another PC: this collector PC's LAN IP
   Port = 9876
 
 Open http://127.0.0.1:8765
@@ -51,6 +52,34 @@ class SessionLap:
     mode: str = ""
     capture_saved: bool = False
     capture_path: str | None = None
+
+
+def lan_ipv4_addresses() -> list[str]:
+    """Local IPv4 addresses Xbox / another PC can type into Data Out."""
+    found: list[str] = []
+
+    def _add(ip: str) -> None:
+        if (
+            ip
+            and not ip.startswith("127.")
+            and not ip.startswith("169.254.")
+            and ip not in found
+        ):
+            found.append(ip)
+
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        probe.connect(("8.8.8.8", 80))
+        _add(probe.getsockname()[0])
+        probe.close()
+    except OSError:
+        pass
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            _add(info[4][0])
+    except OSError:
+        pass
+    return found
 
 
 class CollectorState:
@@ -149,6 +178,7 @@ class CollectorState:
                 "live": live,
                 "packets_per_sec": self.packets_per_sec,
                 "udp_port": self.udp_port,
+                "lan_ips": lan_ipv4_addresses(),
                 "capture_counts": capture_counts(self.track),
                 "labels": list(VALID_LABELS),
                 "cloud": {
@@ -883,7 +913,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Open collector UI: http://{args.web_host}:{args.web_port}")
     print(f"Timing API target: {state.cloud.cfg.api_base}")
     print("FH6 -> Settings -> HUD and Gameplay -> Data Out ON")
-    print(f"  Data Out IP = this PC   Data Out Port = {args.port}")
+    print(f"  PC (same machine): IP 127.0.0.1   Port {args.port}")
+    lan = ", ".join(lan_ipv4_addresses()) or "this PC's local IP"
+    print(f"  Xbox / other PC:   IP {lan}   Port {args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -166,6 +166,21 @@
         line-height: 1.55;
       }
       .help-steps li { margin-bottom: 0.55rem; }
+      .help-split {
+        display: grid;
+        gap: 0.55rem;
+        margin-top: 0.55rem;
+      }
+      .help-split > div {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.6rem 0.75rem;
+      }
+      .help-split strong {
+        display: block;
+        color: var(--text);
+        margin-bottom: 0.3rem;
+      }
       .help-steps code,
       .help details code {
         font-size: 0.9em;
@@ -228,8 +243,19 @@
             </li>
             <li>
               In FH6: <strong>Settings → HUD and Gameplay → Data Out → On</strong>.
-              IP <code>127.0.0.1</code> · Port <code id="help-port">9876</code>
-              (do not use 5200–5300).
+              Port <code id="help-port">9876</code> (do not use 5200–5300).
+              <div class="help-split">
+                <div>
+                  <strong>PC — game on this computer</strong>
+                  Data Out IP <code>127.0.0.1</code>
+                </div>
+                <div>
+                  <strong>Xbox Series X|S — or another PC on the same network</strong>
+                  Data Out IP <code id="lan-ip">this PC’s local IP</code>
+                  · same home network (not guest Wi‑Fi)
+                  · allow UDP <code class="help-port-copy">9876</code> through Windows Firewall on this collector PC
+                </div>
+              </div>
             </li>
             <li>
               Load a DoomSantos <strong>Time Attack</strong> event and start from
@@ -264,17 +290,19 @@
             <strong>Game connected</strong>.
           </p>
           <p>
-            Check IP and port digit-for-digit. Same PC → <code>127.0.0.1</code>.
-            Do not use ports <code>5200–5300</code> (FH6 uses those itself).
+            Check IP and port digit-for-digit. Game on this PC →
+            <code>127.0.0.1</code>. Xbox or another PC → the address shown in
+            Setup (this collector PC). Do not use ports
+            <code>5200–5300</code> (FH6 uses those itself).
           </p>
           <p>
             Run only one collector. Close SimHub or other telemetry apps — FH6
             can send Data Out to one place at a time.
           </p>
           <p>
-            Restart FH6 after turning Data Out on. If a Microsoft Store / Xbox
-            copy of the game still never connects, message DSR for the one-time
-            Windows fix.
+            Restart FH6 after turning Data Out on. If a Microsoft Store copy of
+            the game on this PC still never connects, message DSR for the
+            one-time Windows fix.
           </p>
           <p>
             Windows Firewall may be blocking UDP
@@ -329,7 +357,8 @@
           <p>
             Alt-tab, sleep, or leaving FH6 can pause Data Out. Start driving
             again and confirm Data Out is still On. Restart the game if the
-            status stays on Waiting for game.
+            status stays on Waiting for game. On Xbox, keep the console and
+            this PC on the same home network.
           </p>
         </details>
       </section>
@@ -651,6 +680,8 @@
           document.querySelectorAll(".help-port-copy").forEach((el) => {
             el.textContent = port;
           });
+          const lan = (state.lan_ips || []).filter(Boolean);
+          $("lan-ip").textContent = lan.length ? lan.join(" or ") : "this PC’s local IP";
           hydrated = true;
         } else if (state.track_hint) {
           fillTracks(state.tracks, state.track);
