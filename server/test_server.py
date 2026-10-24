@@ -459,6 +459,52 @@ class AdminHttpTests(unittest.TestCase):
         history = self.store.history(player="RacerTwo", limit=5)
         self.assertEqual(history[0].track, "Autodromo Nazionale Monza")
 
+    def test_admin_delete_lap_and_player(self) -> None:
+        invite = self.store.create_invite("DEL-INVITE")
+        device, _token = self.store.claim_invite(
+            invite_code=invite, display_name="TestAccount"
+        )
+        row = self.store.insert_lap(
+            device=device,
+            track="Albert Park",
+            lap_time_s=90.0,
+            class_name="A",
+            car_pi=700,
+            car_ordinal=1,
+            integrity="clean",
+            mode="time_attack",
+            client_lap_id="del-1",
+            known_tracks={"Albert Park"},
+        )
+        status, listed = self._request(
+            "GET",
+            "/v1/admin/laps?player=TestAccount",
+            token="secret-admin",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(listed["laps"][0]["id"], row.id)
+
+        status, deleted = self._request(
+            "POST",
+            "/v1/admin/laps/delete",
+            {"ids": [row.id]},
+            token="secret-admin",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(deleted["removed"], 1)
+        self.assertEqual(self.store.history(player="TestAccount"), [])
+
+        status, gone = self._request(
+            "POST",
+            "/v1/admin/players/delete",
+            {"display_name": "TestAccount"},
+            token="secret-admin",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(gone["display_name"], "TestAccount")
+        names = [p["display_name"] for p in self.store.list_players()]
+        self.assertNotIn("TestAccount", names)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,7 @@
 .git
 .venv
+admin
+open-admin.bat
 **/__pycache__/
 *.pyc
 collector/captures

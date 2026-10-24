@@ -114,6 +114,40 @@ def make_handler(
                 self._send(200, {"players": store.list_players()})
                 return
 
+            if path == "/v1/admin/laps":
+                if not self._require_admin():
+                    return
+                player = (qs.get("player") or [""])[0]
+                if not player.strip():
+                    self._error(400, "player required")
+                    return
+                try:
+                    limit = int((qs.get("limit") or ["200"])[0])
+                except ValueError:
+                    self._error(400, "invalid limit")
+                    return
+                rows = store.history(player=player, limit=limit)
+                self._send(
+                    200,
+                    {
+                        "player": player,
+                        "laps": [
+                            {
+                                "id": r.id,
+                                "track": r.track,
+                                "lap_time_s": r.lap_time_s,
+                                "lap_time": format_lap_time(r.lap_time_s),
+                                "class_pi": f"{r.class_name} {r.car_pi}",
+                                "integrity": r.integrity,
+                                "mode": r.mode or None,
+                                "submitted_at": r.submitted_at,
+                            }
+                            for r in rows
+                        ],
+                    },
+                )
+                return
+
             if path == "/v1/board":
                 track = (qs.get("track") or [None])[0]
                 class_pi = (qs.get("class_pi") or [None])[0]
@@ -314,6 +348,36 @@ def make_handler(
                         "device_token": token,
                     },
                 )
+                return
+
+            if path == "/v1/admin/laps/delete":
+                if not self._require_admin():
+                    return
+                ids = body.get("ids")
+                if not isinstance(ids, list):
+                    self._error(400, "ids required")
+                    return
+                try:
+                    removed = store.delete_laps(ids)
+                except ValueError as exc:
+                    self._error(400, str(exc))
+                    return
+                self._send(200, {"removed": removed})
+                return
+
+            if path == "/v1/admin/players/delete":
+                if not self._require_admin():
+                    return
+                name = str(body.get("display_name") or "").strip()
+                if not name:
+                    self._error(400, "display_name required")
+                    return
+                try:
+                    result = store.delete_player(name)
+                except LookupError as exc:
+                    self._error(404, str(exc))
+                    return
+                self._send(200, result)
                 return
 
             if path == "/v1/admin/laps":

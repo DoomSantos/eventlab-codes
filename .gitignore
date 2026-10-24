@@ -41,6 +41,8 @@ mint-invite.bat
 mint-invite-test.bat
 reissue-invite.bat
 list-players.bat
+open-admin.bat
+admin/
 start-test-collector.bat
 start-test-server.bat
 scripts/compare_ta_starts.py

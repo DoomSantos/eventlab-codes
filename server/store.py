@@ -514,6 +514,46 @@ class TimingStore:
         ).fetchall()
         return [self._lap_from_row(r) for r in rows]
 
+    def delete_laps(self, ids: list[object]) -> int:
+        clean_ids: list[int] = []
+        for raw in ids:
+            try:
+                n = int(raw)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("ids must be integers") from exc
+            if n <= 0:
+                raise ValueError("ids must be positive")
+            clean_ids.append(n)
+        if not clean_ids:
+            raise ValueError("ids required")
+        placeholders = ",".join("?" * len(clean_ids))
+        cur = self._conn.execute(
+            f"DELETE FROM laps WHERE id IN ({placeholders})",
+            clean_ids,
+        )
+        self._conn.commit()
+        return int(cur.rowcount)
+
+    def delete_player(self, display_name: str) -> dict[str, object]:
+        device = self.device_by_name(display_name)
+        if device is None:
+            raise LookupError("no player with that display name")
+        laps = self._conn.execute(
+            "DELETE FROM laps WHERE device_id = ?", (device.id,)
+        )
+        self._conn.execute(
+            "DELETE FROM presence WHERE device_id = ?", (device.id,)
+        )
+        self._conn.execute(
+            "DELETE FROM invites WHERE reclaim_device_id = ?", (device.id,)
+        )
+        self._conn.execute("DELETE FROM devices WHERE id = ?", (device.id,))
+        self._conn.commit()
+        return {
+            "display_name": device.display_name,
+            "laps_removed": int(laps.rowcount),
+        }
+
     def board(
         self,
         *,
@@ -614,7 +654,7 @@ class TimingStore:
             ORDER BY laps.submitted_at DESC
             LIMIT ?
             """,
-            (player.strip(), max(1, min(limit, 200))),
+            (player.strip(), max(1, min(limit, 500))),
         ).fetchall()
         return [self._lap_from_row(r) for r in rows]
 
